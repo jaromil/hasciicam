@@ -21,7 +21,7 @@ AC_PROG_CC
 AC_PROG_RANLIB
 
 dnl Add the local include path and some flags
-CFLAGS="$CFLAGS -O3 -pipe -I/usr/local/include -ffast-math"
+CFLAGS="$CFLAGS -O3 -pipe -ffast-math"
 
 dnl Checks for header files.
 AC_HEADER_STDC
