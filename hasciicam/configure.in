@@ -9,7 +9,7 @@ AC_PROG_INSTALL
 
 dnl Setup for automake
 AM_SANITY_CHECK
-AM_INIT_AUTOMAKE(HasciiCam, 0.9)
+AM_INIT_AUTOMAKE(HasciiCam, 1.0) 
 AM_CONFIG_HEADER(config.h)
 
 dnl Get the operating system and version number...
@@ -21,11 +21,11 @@ AC_PROG_CC
 AC_PROG_RANLIB
 
 dnl Add the local include path and some flags
-CFLAGS="$CFLAGS -O3 -I/usr/local/include -ffast-math"
+CFLAGS="$CFLAGS -O3 -pipe -I/usr/local/include -ffast-math"
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(linux/videodev.h jpeglib.h)
+AC_CHECK_HEADERS(linux/videodev.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -47,18 +47,34 @@ AC_CHECK_LIB(aa,aa_init, have_aa=yes, [
 	exit 0;
 ])
 
-if test "$uname" = "IRIX"; then
- AC_DEFINE(HAVE_SGI)
- SGI_SOURCES="resample.c"
+CFLAGS="$CFLAGS"
+LIBS="$LIBS -laa"
+
+dnl ==============================================================
+dnl link with memory debugging library dmalloc
+dnl ==============================================================
+AC_CHECK_HEADER(dmalloc.h)
+if test "$ac_cv_header_dmalloc_h" = "yes"; then
+
+AC_MSG_CHECKING(if malloc debugging is wanted)
+AC_ARG_WITH(dmalloc,
+[  --with-dmalloc          use dmalloc, as in
+                          ftp://ftp.letters.com/src/dmalloc/dmalloc.tar.gz],
+[if test "$withval" = yes; then
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(WITH_DMALLOC,1,
+            [Define if using the dmalloc debugging malloc package])
+  LIBS="$LIBS -ldmallocthcxx"
+  DMALLOCC="dmallocc.cpp"
+  have_dmalloc=yes
 else
- AC_DEFINE(HAVE_LINUX)
- SGI_SOURCES=""
+  AC_MSG_RESULT(no)
+  DMALLOCC=""
+  have_dmalloc=no
+fi], [AC_MSG_RESULT(no)])
+
 fi
 
-AC_SUBST(SGI_SOURCES)
-
-CFLAGS="$CFLAGS"
-LIBS="$LIBS -laa -ljpeg"
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

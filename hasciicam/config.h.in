@@ -5,9 +5,6 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the <jpeglib.h> header file. */
-#undef HAVE_JPEGLIB_H
-
 /* Define to 1 if you have the <linux/videodev.h> header file. */
 #undef HAVE_LINUX_VIDEODEV_H
 
@@ -58,6 +55,9 @@
 
 /* Version number of package */
 #undef VERSION
+
+/* Define if using the dmalloc debugging malloc package */
+#undef WITH_DMALLOC
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

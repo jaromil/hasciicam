@@ -2,11 +2,9 @@ bin_PROGRAMS = hasciicam
 
 hasciicam_SOURCES = 	\
 	hasciicam.c	\
-	ftp.c		\
-	yuv2rgb.c	\
-	yuv2rgb_mmx.c	\
-	cpu_accel.c	\
-	resample.c
+	ftp.c
+
+hasciicam_LDADD = @LIBS@
 
 man_MANS = hasciicam.1
 
