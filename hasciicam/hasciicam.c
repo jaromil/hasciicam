@@ -51,6 +51,7 @@
 #include <aalib.h>
 
 #include "ftp.h"
+#include "yuv2rgb.h"
 
 #define TEMPFILE "/tmp/hasciitmp.jpg"
 
@@ -232,7 +233,7 @@ resample_8bit (unsigned char *mem, int n, unsigned char *dest)
 {
   int c;
   int cc = 0;
-  for (c = 0; c < n; c += 3)
+  for (c = 0; c < n; c += 4)
     {
       dest[cc] =
 	(int) rint ((mem[c]) * 0.3 + (mem[c + 1]) * 0.59 +
@@ -294,95 +295,131 @@ write_jpeg (char *filename, char *data, int w, int h)
 /* v4l */
 
 static struct video_capability grab_cap;
-static struct video_mmap grab_buf;
+static struct video_mbuf grab_map;
+static struct video_mmap grab_buf[2];
 static struct video_channel grab_chan;
-struct video_picture grab_pic;
+static struct video_tuner grab_tuner;
+static struct video_picture grab_pic;
 static int grab_fd = -1;
 static int grab_size;
+static int cur_frame = 0;
+static int ok_frame = 0;
+static int palette;
+static unsigned char *grab_data;
 
-void
-grab_detect ()
-{
+/* yuv2rgb conversion routine pointer 
+   this is returned by yuv2rgb_init */
+yuv2rgb_fun *yuv2rgb;
+void *rgb_surface;
+int u,v; /* uv offset */
+
+void grab_detect(char *devfile) {
   int counter, res;
   char *capabilities[] = {
-    "  VID_TYPE_CAPTURE          can capture to memory",
-    "  VID_TYPE_TUNER            has a tuner of some form",
-    "  VID_TYPE_TELETEXT         has teletext capability",
-    "  VID_TYPE_OVERLAY          can overlay its image onto the frame buffer",
-    "  VID_TYPE_CHROMAKEY        overlay is chromakeyed",
-    "  VID_TYPE_CLIPPING         overlay clipping supported",
-    "  VID_TYPE_FRAMERAM         overlay overwrites frame buffer memory",
-    "  VID_TYPE_SCALES           supports image scaling",
-    "  VID_TYPE_MONOCHROME       image capture is grey scale only",
-    "  VID_TYPE_SUBCAPTURE       capture can be of only part of the image"
+    "VID_TYPE_CAPTURE          can capture to memory",
+    "VID_TYPE_TUNER            has a tuner of some form",
+    "VID_TYPE_TELETEXT         has teletext capability",
+    "VID_TYPE_OVERLAY          can overlay its image to video",
+    "VID_TYPE_CHROMAKEY        overlay is chromakeyed",
+    "VID_TYPE_CLIPPING         overlay clipping supported",
+    "VID_TYPE_FRAMERAM         overlay overwrites video memory",
+    "VID_TYPE_SCALES           supports image scaling",
+    "VID_TYPE_MONOCHROME       image capture is grey scale only",
+    "VID_TYPE_SUBCAPTURE       capture can be of only part of the image"
   };
 
-  res = ioctl (grab_fd, VIDIOCGCAP, &grab_cap);
-  if (res < 0)
-    {
-      perror ("Error in VIDIOCGCAP ");
-      exit (1);
-    }
+  if (-1 == (grab_fd = open(devfile,O_RDWR|O_NONBLOCK))) {
+    perror("!! error in opening video capture device: ");
+    return;
+  } else {
+    close(grab_fd);
+    grab_fd = open(devfile,O_RDWR);
+  }
+  
+  res = ioctl(grab_fd,VIDIOCGCAP,&grab_cap);
+  if(res<0) {
+    perror("!! error in VIDIOCGCAP: ");
+    return;
+  }
 
-  fprintf (stderr, "-- detecting hardware\n");
-  fprintf (stderr, "Device used is %s\n", device);
-  fprintf (stderr, "%s\n", grab_cap.name);
-  fprintf (stderr, "%u channels detected\n", grab_cap.channels);
-  fprintf (stderr, "maximum capture size is %ux%u\n", grab_cap.maxwidth,
-	   grab_cap.maxheight);
-  fprintf (stderr, "minimum capture size is %ux%u\n", grab_cap.minwidth,
-	   grab_cap.minheight);
-  fprintf (stderr, "Video capabilities:\n");
-  for (counter = 0; counter < 11; counter++)
-    if (grab_cap.type & (1 << counter))
-      fprintf (stderr, "%s\n", capabilities[counter]);
+  fprintf(stderr,"Device detected is %s\n",devfile);
+  fprintf(stderr,"%s\n",grab_cap.name);
+  fprintf(stderr,"%u channels detected\n",grab_cap.channels);
+  fprintf(stderr,"max size w[%u] h[%u] - min size w[%u] h[%u]\n",grab_cap.maxwidth,grab_cap.maxheight,grab_cap.minwidth,grab_cap.minheight);
+  fprintf(stderr,"Video capabilities:\n");
+  for (counter=0;counter<11;counter++)
+    if (grab_cap.type & (1 << counter)) fprintf(stderr,"%s\n",capabilities[counter]);
+  
+  if (-1 == ioctl(grab_fd, VIDIOCGPICT, &grab_pic)) {
+    perror("!! ioctl VIDIOCGPICT: ");
+    exit(1);
+  }
+  
+  if (grab_pic.palette & VIDEO_PALETTE_GREY)
+    fprintf(stderr,"VIDEO_PALETTE_GREY        device is able to grab greyscale frames\n");
 
-  if (-1 == ioctl (grab_fd, VIDIOCGPICT, &grab_pic))
-    {
-      perror ("ioctl VIDIOCGPICT ");
-      exit (1);
-    }
-
+  
   if (strncmp (grab_cap.name, "OV511", 5) == 0)
     /* the device is a USB camera, chipset OV511, wich has only one input
        channel (afaik, alltough i don't have one) so we force that chan */
     input = 0;
-
-  if (grab_cap.type & VID_TYPE_TUNER)
-    /* the device does'nt has any tuner, so we avoid some ioctl
-       this should be a fix for Creative Webcam II. thanks to Ben Wilson */
+  
+  if(grab_cap.type & VID_TYPE_TUNER)
+    /* if the device does'nt has any tuner, so we avoid some ioctl
+       this should be a fix for many webcams, thanks to Ben Wilson */
     have_tuner = 1;
+  
+  
 
-  /* we set the minwidth and minheight as default size values if they are
-     greater than the normal default */
-  if (whchanged == 0)
-    {
-      if (((grab_cap.minwidth / 2) > width)
-	  || ((grab_cap.minheight / 2) > height))
-	{
-	  /* remember width & height are the ASCII size */
-	  width = grab_cap.minwidth / 2;
-	  height = grab_cap.minheight / 2;
-	}
+
+  /* set and check the minwidth and minheight */
+  if (whchanged == 0) {
+    if (((grab_cap.minwidth / 2) > width)
+	|| ((grab_cap.minheight / 2) > height)) {
+      /* remember width & height are the ASCII size */
+      width = grab_cap.minwidth / 2;
+      height = grab_cap.minheight / 2;
     }
+  }
 
-  fprintf (stderr, "\n-- going capture\n");
+  if (ioctl (grab_fd, VIDIOCGMBUF, &grab_map) == -1) {
+    perror("!! error in ioctl VIDIOCGMBUF: ");
+    return;
+  }
+  /* print memory info */
+  fprintf(stderr,"memory map of %i frames: %i bytes\n",grab_map.frames,grab_map.size);
+  for(counter=0;counter<grab_map.frames;counter++)
+    fprintf(stderr,"Offset of frame %i: %i\n",counter,grab_map.offsets[counter]);
+
 }
 
-unsigned char *
-grab_init ()
-{
-  unsigned char *grab_data;
+
+void grab_init() {
+
   int linespace = 5;
+  int i;
 
-  if (-1 == (grab_fd = open (device, O_RDWR)))
-    {
-      perror ("Error in opening video capture device");
-      exit (1);
-    }
+  grab_detect (device);  
 
-  if (quiet == 0)
-    grab_detect ();
+  if (grab_fd == -1) {
+    perror ("Error in opening video capture device");
+    exit (1);
+  }
+  
+  if(have_tuner) { /* does this only if the device has a tuner */
+    //   _band = 5; /* default band is europe west */
+    //   _freq = 0;
+    /* resets CHAN */
+    if (-1 == ioctl(grab_fd,VIDIOCGCHAN,&grab_chan))
+      fprintf(stderr,"!! error in ioctl VIDIOCGCHAN: %s",strerror(errno));
+
+    if (-1 == ioctl(grab_fd,VIDIOCSCHAN,&grab_chan))
+      fprintf(stderr,"error in ioctl VIDIOCSCHAN: %s",strerror(errno));
+    
+    /* get/set TUNER settings */
+    if (-1 == ioctl(grab_fd,VIDIOCGTUNER,&grab_tuner))
+      fprintf(stderr,"error in ioctl VIDIOCGTUNER: %s",strerror(errno));
+  }
 
   /* set image source and TV norm */
   if (grab_cap.channels >= input)
@@ -390,75 +427,105 @@ grab_init ()
   else
     grab_chan.channel = 0;
 
-  if (have_tuner)
-    {
-      /* does this only if the device has a tuner */
-      if (-1 == ioctl (grab_fd, VIDIOCGCHAN, &grab_chan))
-	{
-	  perror ("ioctl VIDIOCGCHAN ");
-	  exit (1);
-	}
-      if (-1 == ioctl (grab_fd, VIDIOCSCHAN, &grab_chan))
-	{
-	  perror ("ioctl VIDIOCSCHAN ");
-	  exit (1);
-	}
+  palette = VIDEO_PALETTE_YUV422P;
+  for(i=0; i<grab_map.frames; i++) {
+    grab_buf[i].format = palette; //RGB24;
+    grab_buf[i].frame  = i;
+    grab_buf[i].height = height*2;
+    grab_buf[i].width = width*2;
+  }
+
+
+  grab_size = grab_buf[0].width * grab_buf[0].height * 4;
+
+  /* choose best yuv2rgb routine (detecting cpu)
+     supported: C, ASM-MMX, ASM-MMX+SSE */
+  yuv2rgb = yuv2rgb_init(32,0x1); /* arg2 is MODE_RGB */
+  rgb_surface = malloc(grab_size);
+  if(!rgb_surface) {
+    perror("can't allocate buffer for YUV conversion: ");
+    exit(1);
+  }
+
+  u = (grab_buf[0].width*grab_buf[0].height);
+  v = u+(u/2);
+
+  grab_data = mmap (0, grab_map.size, PROT_READ | PROT_WRITE, MAP_SHARED, grab_fd, 0);
+  if (MAP_FAILED == grab_data) {
+    perror ("Cannot allocate video4linux grabber buffer ");
+    exit (1);
+  }
+
+  /* feed up the mmapped frames */
+  cur_frame = ok_frame = 0;  
+  for(;cur_frame<grab_map.frames;cur_frame++) {
+    if (-1 == ioctl(grab_fd,VIDIOCMCAPTURE,&grab_buf[cur_frame])) {
+      fprintf(stderr,"error in ioctl VIDIOCMCAPTURE: %s",strerror(errno));
     }
+  }
+  cur_frame = 0;
 
-
-  grab_buf.height = height*2;
-  grab_buf.width = width*2;
-
-  grab_buf.format = VIDEO_PALETTE_RGB24;
-  grab_buf.frame = 0;
-  grab_size = grab_buf.width * grab_buf.height * 3;
-  grab_data =
-    mmap (0, grab_size, PROT_READ | PROT_WRITE, MAP_SHARED, grab_fd, 0);
-  if (-1 == (int) grab_data)
-    {
-      perror ("Cannot allocate video surface ");
-      exit (1);
-    }
 
   /* untested with new code restructuration */
-  switch (fontsize)
-    {
-    case 1:
-      linespace = 5;
-      break;
-    case 2:
-      linespace = 10;
-      break;
-    case 3:
-      linespace = 11;
-      break;
-    case 4:
-      linespace = 13;
-      break;
-    }
+  switch (fontsize) {
+  case 1:
+    linespace = 5;
+    break;
+  case 2:
+    linespace = 10;
+    break;
+  case 3:
+    linespace = 11;
+    break;
+  case 4:
+    linespace = 13;
+    break;
+  }
 
   /* init the html header */
   snprintf (&html_header[0], 512,
 	    "<HTML>\n <HEAD> <TITLE>wow! (h)ascii 4 the masses!</TITLE>\n<META HTTP-EQUIV=\"refresh\" CONTENT=\"%u\"; url=\"%s\">\n<META HTTP-EQUIV=\"Pragma\" CONTENT=\"no-cache\">\n<STYLE TYPE=\"text/css\">\n<!--\npre {\nletter-spacing: 1px;\nlayer-background-color: Black;\nleft : auto;\nline-height : %upx;\n}\n-->\n</STYLE>\n</HEAD>\n<BODY bgcolor=\"#%s\" text=\"#%s\">\n<FONT SIZE=%u face=\"%s\">\n<PRE>\n",
 	    refresh, aafile, linespace, background, foreground, fontsize,
 	    fontface);
-  return (grab_data);
+
 }
 
 int
-grab_one ()
-{
+grab_one () {
 
-  if (ioctl (grab_fd, VIDIOCMCAPTURE, &grab_buf) == -1)
-    perror ("ioctl VIDIOCMCAPTURE");
-  else if (ioctl (grab_fd, VIDIOCSYNC, &grab_buf) != -1)
-    /* i comment this out to not make complain hasciicam when exiting 
-       perror ("ioctl VIDIOCSYNC"); */
-    return 1;
+  ok_frame = cur_frame;
+  cur_frame = ((cur_frame+1)%grab_map.frames);
+  grab_buf[0].format = palette;
+  
+  (*yuv2rgb)((uint8_t *) rgb_surface,
+	     (uint8_t *) &grab_data[grab_map.offsets[ok_frame]],
+	     (uint8_t *) &grab_data[grab_map.offsets[ok_frame]+u],
+	     (uint8_t *) &grab_data[grab_map.offsets[ok_frame]+v],
+	     grab_buf[ok_frame].width, grab_buf[ok_frame].height, grab_buf[ok_frame].width*4,
+	     grab_buf[ok_frame].width, grab_buf[ok_frame].width);
 
-  return -1;
+  if (-1 == ioctl(grab_fd,VIDIOCSYNC,&grab_buf[cur_frame])) {
+    perror("error in ioctl VIDIOCSYNC: ");
+    return -1;
+  }
+
+  if (-1 == ioctl(grab_fd,VIDIOCMCAPTURE,&grab_buf[cur_frame])) {
+    perror("error in ioctl VIDIOCMCAPTURE: ");
+    return -1;
+  }
+  return 1;
+
 }
+
+
+
+
+
 #endif
+
+
+
+
 
 #ifdef sgi
 /* Use IRIX DMedia layer */
@@ -868,15 +935,14 @@ main (int argc, char **argv)
     }
 
   /* bttv grabber init */
-  image = grab_init ();
+  grab_init();
 
   /* width/height image setup */
   ascii_surf.width = width;
   ascii_surf.height = height;
 
-  if (!quiet)
-      fprintf (stderr, "grabbed image is %dx%d", grab_buf.width,
-	       grab_buf.height);
+  fprintf (stderr, "grabbed image is %dx%d",
+	   grab_buf[ok_frame].width, grab_buf[ok_frame].height);
 
   setuid (uid);
   setgid (gid);
@@ -884,38 +950,31 @@ main (int argc, char **argv)
   switch (mode)
     {
     case 0:
-      if (!quiet)
-	{
-	  fprintf (stderr, " - ascii context is %dx%d\n", width, height);
-	  fprintf (stderr, "using LIVE mode\n");
-	}
+      fprintf (stderr, " - ascii context is %dx%d\n", width, height);
+      fprintf (stderr, "using LIVE mode\n");
       break;
-
+      
     case 1:
       ascii_save.name = aafile;
       ascii_save.format = &aa_html_format;
       ascii_save.file = NULL;
-      if (!quiet)
-	{
-	  fprintf (stderr, " - ascii context is %dx%d\n", width, height);
-	  fprintf (stderr, "using HTML mode dumping to file %s\n", aafile);
-	  if (useftp)
-	    fprintf (stderr, " ftp-pushing on %s%s\n", ftp_host, ftp_dir);
-	}
-      break;
 
+      fprintf (stderr, " - ascii context is %dx%d\n", width, height);
+      fprintf (stderr, "using HTML mode dumping to file %s\n", aafile);
+      if (useftp)
+	fprintf (stderr, " ftp-pushing on %s%s\n", ftp_host, ftp_dir);
+      break;
+      
     case 2:
       ascii_save.name = aafile;
       ascii_save.format = &aa_text_format;
       ascii_save.file = NULL;
-      if (!quiet)
-	{
-	  fprintf (stderr, " - ascii context is %dx%d\n", width, height);
-	  fprintf (stderr, "using TEXT mode dumping to file %s\n", aafile);
-	  if (useftp)
-	    fprintf (stderr, " ftp-pushing on ftp://%s%s\n", ftp_host,
-		     ftp_dir);
-	}
+
+      fprintf (stderr, " - ascii context is %dx%d\n", width, height);
+      fprintf (stderr, "using TEXT mode dumping to file %s\n", aafile);
+      if (useftp)
+	fprintf (stderr, " ftp-pushing on ftp://%s%s\n", ftp_host, ftp_dir);
+
       break;
 
     default:
@@ -962,13 +1021,13 @@ main (int argc, char **argv)
   while (userbreak < 1) {
     grab_one ();
     
-    resample_8bit (image, grab_buf.width * grab_buf.height * 3, grey);
+    resample_8bit (rgb_surface, grab_size, grey);
     memcpy (aa_image (ascii_img), grey, width * height * 4);
     aa_render (ascii_img, &ascii_parms, 0, 0, width, height);
     aa_flush (ascii_img);
     if(jpgdump) {
-      swap_rgb24 (image, grab_buf.width * grab_buf.height);
-      write_jpeg (jpgfile, image, grab_buf.width, grab_buf.height);
+      swap_rgb24 (image, grab_buf[ok_frame].width * grab_buf[ok_frame].height);
+      write_jpeg (jpgfile, image, grab_buf[ok_frame].width, grab_buf[ok_frame].height);
     }
     
     if (useftp)
@@ -996,7 +1055,7 @@ main (int argc, char **argv)
     close (grab_fd);
 
   if (image != NULL)
-    munmap (image, grab_size);
+    munmap (grab_data, grab_size);
 #endif
 
   fprintf (stderr, "cya!\n");
