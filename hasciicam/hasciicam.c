@@ -110,7 +110,7 @@ const struct option long_options[] = {
   {"foreground", required_argument, NULL, 'F'},
   {"uid", required_argument, NULL, 'U'},
   {"gid", required_argument, NULL, 'G'},
-  //  { "bttvbright", required_argument, NULL, 'B' },
+  //  { "bttvbright", required_argument, NULL, 'B' }, 
   //  { "bttvcontrast", required_argument, NULL, 'C' },
   //  { "bttvgamma", required_argument, NULL, 'G' },
   {0, 0, 0, 0}
