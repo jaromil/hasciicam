@@ -1,0 +1,14 @@
+ HasciiCam is being developed and mantained by:
+# denis roio aka jaromil <jaromil@dyne.org>
+
+ people who contributed to the hasciicam project:
+# aalib crew - the amazing ascii art rendering library
+# gerd knorr - hasciicam is written on his webcam sourcecode
+# mathop - help on css with style
+# august black - hacks for iomegabuz
+# boffh - hacks for usb cams
+# martin guy (freaknet.org) - karma to avoid buffer overflows
+# rat - text dump
+# pbm & megabug (loa.hacklab.it) - exploring new ascii frontiers
+# rapid - security and many bugfixes
+# alessandro preite martinez - sgi irix support and image resampling
