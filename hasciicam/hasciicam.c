@@ -71,7 +71,7 @@ char *help =
 "-n --norm         norm: pal|ntsc|secam|auto - default auto\n"
 "-s --size         ascii image size WxH      - default 96x72\n"
 "-o --aafile       dumped file               - default hasciicam.[txt|html]\n"
-"-f --ftp          ie: [$]user%pass@host:dir - default none\n"
+"-f --ftp          ie: :user%pass@host:dir   - default none\n"
 "-D --daemon       run in background         - default foregrond\n"
 "-U --uid          setuid (int)              - default current\n"
 "-G --gid          setgid (int)              - default current\n"
@@ -364,11 +364,14 @@ int vid_init() {
 
 unsigned char *grab_one () {
   int c = 0, cc=0;
+  /* we use just one frame
+     no matters about the capability of the cam
+     this makes grabbing much faster on my webcam
+     i hope also on yours
+     ok_frame = cur_frame;
+     cur_frame = (cur_frame>=grab_map.frames) ? 0 : cur_frame+1;
+  */
 
-  ok_frame = cur_frame;
-  cur_frame = (cur_frame>=grab_map.frames) ? 0 : cur_frame+1;
-
-  // QUAA
   ok_frame = 0; cur_frame = 0;
 
   grab_buf[ok_frame].format = palette;
@@ -577,7 +580,7 @@ config_init (int argc, char *argv[]) {
     char *p, *pp;
     p = pp = ftp;
 
-    /* exclamation at the beginning for passive mode */
+    /* duepunti at the beginning for passive mode */
     if(*p == ':') { ftp_passive = 1; p++; pp++; }
 
     /* get the user and check if a password has been specified */

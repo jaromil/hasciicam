@@ -1,0 +1,23 @@
+
+arg. i never kept a ChangeLog of this software
+
+anyway this last release fix an important bug
+
+hasciicam wasn't working on recent linux kernels, no way.
+
+if you had a bad experience in trying it out before, now it should work.
+
+only philips webcams are still not supported, better said all webcams
+using a pwc driver. i'll try to find the time to fix it, meanwhile you can use this hacked version:
+http://www.phrat.de/hasciicam-pwc-0.2.tar.gz
+but you may experience some problems with the ftp code...
+
+in fact also the ftp code of this hasciicam is working better: it has been substituted with ftplib and now passive mode is supported from the commandline
+
+also the manual has been updated.
+
+have phun :)
+
+-- jaromil http://rastasoft.org
+
+anyway this last release includes an important fix: in fact hasciicam wasn't working with the latest kernel serie, since grab is limited to some YUV formats by all the video4linux drivers around (it was about Alan Cox observation of keeping YUV->RGB conversion code out of the kernel, delivering it to user space, IMHO totally right).

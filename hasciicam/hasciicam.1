@@ -10,7 +10,7 @@ hasciicam \- (h)ascii for the masses!
 [ \fB-n \fInorm\fR ]
 [ \fB-s \fIsize\fR ]
 [ \fB-o \fIoutput\fR ]
-[ \fB-f \fIuser@ftp.foo.org:/dir\fR ]
+[ \fB-f \fI:user%pass@host:/dir\fR ]
 [ \fBrendering\-options\fR ]
 .SH DESCRIPTION
 .B hasciicam
@@ -58,7 +58,7 @@ Sets rendered ascii frames size to \fBWxH\fP characters. Grabbed frame size is c
 Defines the file where to save rendered ascii, overwrited every \fIrefresh\fP seconds. Default is \fBhasciicam.html\fP when in \fBhtml\fP mode, \fBhasciicam.txt\fP when in \fBtext\fP mode (unuseful when in \fBlive\fP mode).
 .B
 .IP "-f --ftp"
-Ftp pushes the selected output file to an ftp account specified within an expression like \fBuser@dyne.org:/home/user/www\fP, hasciicam asks then for the account password on stdin (hidden while typing). Remote file is refreshed depending on \fBrefresh\fP rate and connection bandwidth, a \fIscolopendro\fP temporary file is created to keep clients on the other side refreshing smooth.
+Ftp pushes the selected output file to an ftp account specified within an expression like \fB:user%pass@dyne.org:/home/user/www\fP. If the password is not specified (omit %pass) hasciicam asks for it on stdin (hidden while typing). If the directory is not specified it is assumed to be the first ftp directory where user logs in. Remote file is refreshed depending on \fBrefresh\fP rate and connection bandwidth, a \fIscolopendro\fP temporary file is created to keep clients on the other side refreshing smooth.
 .B
 .IP "-D --daemon"
 Forks to background and runs in daemon mode.
@@ -91,12 +91,6 @@ Specifies the background color to be used in the form of a \fIhex RGB triplet\fR
 .B
 .IP "-F --foreground"
 Specifies the foreground color to be used in the form of a \fIhex RGB triplet\fR (without the leading #). Default is \fB00FF00\fP for green (only useful when in \fBhtml\fP mode).
-.B
-.IP "-O --jpgfile"
-Specifies the name of a jpeg file to be dumped at the same time of the ascii file, as a jpeg rendering of the last grabbed frame. By default this option is deactivated (unuseful when in \fBlive\fP mode).
-.B
-.IP "-Q --jpgqual"
-Specifies the quality of the jpeg rendering.
 .SH EXAMPLES
 .B hasciicam -m html -o watchme.html
 .br
@@ -105,6 +99,9 @@ puts your \fIhtml\fP formatted ascii into watchme.html
 .B hasciicam -m text -s79x24 -o ~/.plan
 .br
 puts your ascii into your local .plan (fingercam)
+.B hasciicam -m html -S 2 -o index.html -f :jaromil%sasuchen@dyne.org:korova
+.br
+generates an hascii video with font size +1 and uploads the frames in ftp passive mode on the dyne.org server, with user jaromil password sasuchen, inside the korova directory
 .SH NOTES
 When using a usb webcam, a supported size needs to be specified. The minimum or maximum detected size should work, also a size of 160x120 mostly gives good results, with unsupported sizes you will get unexpected results.
 .SH BUGS

@@ -3,9 +3,8 @@
 888888  dP__Yb  o.`Y8b Yb      88 88 Yb       dP__Yb  88YbdP88 
 88  88 dP""""Yb 8bodP'  YboodP 88 88  YboodP dP""""Yb 88 YY 88 
                 [ (h)ascii for the masses! ]
-                                                  version 0.9
-Copyright (c) 2000-2001 denis roio aka jaromil
-see file COPYING for licensing stuff
+                                version 1.0 codename RASTASOFT
+                                                    by jaromil
 
 Hasciicam makes it possible to have live ascii video on the web. It
 captures video from a tv card and renders it into ascii, formatting the
@@ -29,10 +28,6 @@ aalib - that's the great lib that makes possible ascii rendering
 	if your distribution does'nt includes it, you can fetch it
 	from the hasciicam webpage.
 
-jpeglib - 'nuff said, you should already have it, otherwise go and grabit
-	  if installing from distribution packages you need the jpeg-devel
-	  in order to compile sources.
-
 video4linux driver - depending on your card - stable comes as a kernel module
 		bttv :: http://www.metzlerbros.de/bttv.html
 		buz :: http://www.munich-vision.de/buz
@@ -40,8 +35,16 @@ video4linux driver - depending on your card - stable comes as a kernel module
 
 i'm using hasciicam with a wintv hauppage card (bttv brooktree)
 using as a driver the bttv one coming with the 2.4.x kernel series
+
+i also had success with logitech/dexxa usb cams, using the mod_quickcam
+module available at http://qce-ga.sf.net
+
 people reported success with several pci and usb devices, refer to
-video4linux documentation for further informations.
+video4linux documentation for further informations
+
+at the moment hasciicam DOES NOT WORKS with PHILIPS WEBCAMS (and any
+other webcam using the pwc driver). help is needed with YUV420P
+grabbing to make it work - mail jaromil /@/ dyne.org for suggestions.
 
 ---
 
@@ -57,8 +60,9 @@ man hasciicam
 ADDITIONAL CREDITS
 
 code snippets hacks and ideas have been contributed by:
- aalibcrew gerdknorr mathop augustonero boffh  martinguy
- pbm megabug rat rapid alessandropreitemartinez hks1
+ jan hubicka and the aalibcrew, gerdknorr, mathop, augustonero, boffh,
+ martin guy, pbm, megabug, rat, rapid, alessandro preite martinez, hks1,
+ thomas pfau, knorke, dr.meccoi
 
 special thanks to:
 # LOA hacklab milano :: http://loa.hacklab.it
@@ -72,19 +76,21 @@ special thanks to:
 	high quality bandwidth lets people get slashdotted!
 # FREAKNET medialab catania :: http://freaknet.org
 	for knowledge, place, sun and connectivity under the vulcano!
-
+	
 ---
 
 DISCUSSION
 
 feel free to join the hasciicam@dyne.org mailinglist to discuss
 bugs, development of new features and support for new devices.
-besides that we're actively working on a new codec compressed hascii
-streaming framework, so expect something more soon and keep an eye
-on http://www.hascii.org ;)
 
---
 have phun!
 
-jrml ..//korova.dyne.org
-6EEE 4FB2 2555 7ACD 8496  AB99 E2A2 93B4 6C62 4800
+-- 
+ jaromil   dyne.org rasta coder   http://rastasoft.org
+   
+ dyne:bolic GNU/Linux liveCD      http://dynebolic.org 
+ MuSE Streamer v0.8.1             http://muse.dyne.org 
+ FreeJ v0.5 - free the veejay!    http://freej.org   
+ FARAH in Palestine               http://farah.dyne.org
+
