@@ -42,7 +42,7 @@
 #include <config.h>
 
 #include <aalib.h>
-#include <ftp.h>
+#include <ftplib.h>
 
 /* hasciicam modes */
 #define LIVE 0
@@ -59,7 +59,7 @@ char *version =
 char *help =
 /* "\x1B" "c" <--- SCREEN CLEANING ESCAPE CODE
    why here? just a reminder for a shamanic secret told by bernie@codewiz.org */
-"Usage: hasciicam [options]\n"
+"Usage: hasciicam [options] [rendering options] [aalib options]\n"
 "options:\n"
 "-h --help         this help\n"
 "-H --aahelp       aalib complete help\n"
@@ -71,7 +71,7 @@ char *help =
 "-n --norm         norm: pal|ntsc|secam|auto - default auto\n"
 "-s --size         ascii image size WxH      - default 96x72\n"
 "-o --aafile       dumped file               - default hasciicam.[txt|html]\n"
-"-f --ftp          ie: user@ftp.host.it:/dir - default none\n"
+"-f --ftp          ie: [$]user%pass@host:dir - default none\n"
 "-D --daemon       run in background         - default foregrond\n"
 "-U --uid          setuid (int)              - default current\n"
 "-G --gid          setgid (int)              - default current\n"
@@ -152,6 +152,7 @@ char ftp_host[256];
 char ftp_dir[256];
 char ftp_pass[256];
 int ftp_passive;
+netbuf *ftpconn = NULL;
 
 int uid = -1;
 int gid = -1;
@@ -159,6 +160,7 @@ int gid = -1;
 /* buffers */
 unsigned char *image = NULL; /* mmapped */
 char aafile[256];
+
 
 /* declare the sighandler */
 void quitproc (int Sig);
@@ -210,7 +212,6 @@ int palette;
 /* greyscale image is sampled from Y luminance component */
 unsigned char *grey;
 int YtoRGB[256];
-
 
 void YUV422_to_grey(unsigned char *src, unsigned char *dst, int w, int h) {
   int c,cc;
@@ -412,6 +413,8 @@ config_init (int argc, char *argv[]) {
   aa_geo.bright = 50;
   aa_geo.contrast = 10;
   aa_geo.gamma = 10;
+  
+  ftp_passive = 0;
 
   do {
     res = getopt_long (argc, argv, short_options, long_options, NULL);
@@ -570,43 +573,41 @@ config_init (int argc, char *argv[]) {
   }
 
   if (useftp) {
+    /* i have to say i'm quite proud of the parsers i write :) */
     char *p, *pp;
-    p = ftp;
+    p = pp = ftp;
 
+    /* exclamation at the beginning for passive mode */
+    if(*p == ':') { ftp_passive = 1; p++; pp++; }
+
+    /* get the user and check if a password has been specified */
     while (*p != '@') {
-      if ((ftp - p) < 32)
-	p++;
+      if(*p == '%') { /* pass found, get it */
+	*p = '\0'; strncpy(ftp_pass,pp,256);
+	pp = p+1;
+      }
+      if ((p - pp) < 256) p++;
       else {
 	fprintf (stderr,"Error: malformed ftp command: %s\n", ftp);
-	exit (0);
-      }
-    }
-    *p = '\0';
-    strncpy(ftp_user,ftp,256);
-    p++;
-    pp = p;
+	exit (0); }
+    } /* here we have the username */
+     *p = '\0'; strncpy(ftp_user,pp,256);
+    p++; pp = p;
     
     while (*p != ':') {
-      if ((pp - p) < 64)
-	p++;
+      if ((pp - p) < 256) p++;
       else {
 	fprintf (stderr,"Error: malformed ftp command: %s\n", ftp);
-	exit (0);
-      }
-    }
-    
-    *p = '\0';
-    strncpy(ftp_host,pp,256);
-    p++;
-    pp = p;
+	exit (0); }
+    } /* here the host */
+    *p = '\0'; strncpy(ftp_host,pp,256);
+    p++; pp = p;
 
-    while (*p != '\0') {
-      if ((pp - p) < 64)
-	p++;
+    while (*p != '\0' && *p != '\n') {
+      if ((pp - p) < 256) p++;
       else {
 	fprintf (stderr,"Error: malformed ftp command: %s\n", ftp);
-	exit (0);
-      }
+	exit (0); }
     }
     if((pp-p)==0) strcpy(ftp_dir,".");
     else strncpy(ftp_dir,pp,256);
@@ -635,10 +636,12 @@ main (int argc, char **argv) {
   /* initialize aalib default params */
   memcpy (&ascii_hwparms, &aa_defparams, sizeof (struct aa_hardware_params));
   ascii_rndparms = aa_getrenderparams();
+  //  memcpy (&ascii_rndparms,&aa_defrenderparams,sizeof(struct aa_renderparams));
 
-  /* gathering line commands */
+  /* gathering aalib commandline options */
   aa_parseoptions (&ascii_hwparms, ascii_rndparms, &argc, argv);
 
+  /* and hasciicam options */
   config_init (argc, argv);
 
   /* detect and init video device */
@@ -668,8 +671,6 @@ main (int argc, char **argv) {
       ascii_save.file = NULL;
 
       fprintf (stderr, "using HTML mode dumping to file %s\n", aafile);
-      if (useftp)
-	fprintf (stderr, " ftp-pushing on %s%s\n", ftp_host, ftp_dir);
       break;
       
     case TEXT:
@@ -678,8 +679,6 @@ main (int argc, char **argv) {
       ascii_save.file = NULL;
 
       fprintf (stderr, "using TEXT mode dumping to file %s\n", aafile);
-      if (useftp)
-	fprintf (stderr, " ftp-pushing on ftp://%s%s\n", ftp_host, ftp_dir);
 
       break;
 
@@ -700,22 +699,41 @@ main (int argc, char **argv) {
     exit(-1);
   }
     
-/* ftp init *//* untested with new code changes */
-  if (useftp)
+  while (useftp)
     {
       char temp[160];
-      ftp_init (0);
-      sprintf (temp, "password for %s@%s : ", ftp_user, ftp_host);
-      strncpy(ftp_pass, getpass(temp), 256);
-      ftp_connect (ftp_host, ftp_user, ftp_pass, ftp_dir);
+      fprintf (stderr, "ftp push on ftp://%s@%s:%s\n", ftp_user, ftp_host, ftp_dir);
+
+      FtpInit();
+      if(!FtpConnect(ftp_host,&ftpconn)) {
+	fprintf(stderr,"Unable to connect to host %s\n", ftp_host);
+	useftp = 0; break;
+      }
+      if(ftp_passive)
+	if(!FtpOptions(FTPLIB_CONNMODE,FTPLIB_PASSIVE,ftpconn)) {
+	  fprintf(stderr,"Unable to activate passive mode: %s\n",FtpLastResponse(ftpconn));
+	  useftp = 0; break;
+	}
+      if(!strchr(ftp,'%')) {
+	sprintf (temp, "password for %s@%s : ", ftp_user, ftp_host);
+	strncpy(ftp_pass, getpass(temp), 256);
+      }
+      if(!FtpLogin(ftp_user, ftp_pass, ftpconn)) {
+	fprintf(stderr,"Login Failure: %s\n",FtpLastResponse(ftpconn));
+	useftp = 0; break;
+      }
+      if(!FtpChdir(ftp_dir,ftpconn)) {
+	fprintf(stderr,"Change directory failed: %s\n",FtpLastResponse(ftpconn));
+	useftp = 0; break;
+      }
+      break;
     }
 
-  /* setting ascii rendering parameters */
-  //  memcpy(&ascii_rndparms,&aa_defrenderparams,sizeof(struct aa_renderparams));
 
   ascii_rndparms->bright = aa_geo.bright;
   ascii_rndparms->contrast = aa_geo.contrast;
   ascii_rndparms->gamma = aa_geo.gamma;
+  // those are left to be setted by aalib options
   //  ascii_rndparms->dither = AA_FLOYD_S;
   //  ascii_rndparms->inversion = invert;
   //  ascii_rndparms->randomval = 0;
@@ -732,27 +750,33 @@ main (int argc, char **argv) {
     memcpy (aa_image (ascii_context), grey, vid_geo.size);
     aa_render (ascii_context, ascii_rndparms, 0, 0, 
 	       vid_geo.w,vid_geo.h);
-	       //	       aa_scrwidth(ascii_context), aa_scrheight(ascii_context));
     aa_flush (ascii_context);
     
     if (useftp) {
-      if (!ftp_connected)
-	ftp_connect (ftp_host, ftp_user, ftp_pass, ftp_dir);
+      //      if (!ftp_connected)
+      //	ftp_connect (ftp_host, ftp_user, ftp_pass, ftp_dir);
       /* scolopendro is the tmp file being renamed
 	 it is called so for hystorical reasons */
-      ftp_upload (aafile, aafile, "scolopendro");
+      //      ftp_upload (aafile, aafile, "scolopendro");
+      if(!FtpPut(aafile,"scolopendro",FTPLIB_ASCII,ftpconn))
+	fprintf(stderr,"Error in ftp put: %s\n",FtpLastResponse(ftpconn));
+      if(!FtpRename("scolopendro",aafile,ftpconn))
+	fprintf(stderr,"Error in ftp rename %s\n",FtpLastResponse(ftpconn));
     }
     
     if (mode != LIVE) sleep (refresh);
   }
 
   /* CLEAN EXIT */
+  
+  if(useftp)
+    FtpClose(ftpconn);
 
   aa_close(ascii_context);
   //  free(ascii_rndparms);
 
   free (grey);
-
+  
   if (dev > 0) close (dev);
 
   if (image != NULL)
@@ -768,7 +792,7 @@ quitproc (int Sig)
 {
 
   fprintf (stderr, "interrupt caught, exiting.\n");
-  ftp_close();
+
   userbreak = 1;
 
 }

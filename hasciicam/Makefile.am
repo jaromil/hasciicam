@@ -2,7 +2,7 @@ bin_PROGRAMS = hasciicam
 
 hasciicam_SOURCES = 	\
 	hasciicam.c	\
-	ftp.c
+	ftplib.c
 
 hasciicam_LDADD = @LIBS@
 

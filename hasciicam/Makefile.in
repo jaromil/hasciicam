@@ -117,7 +117,7 @@ bin_PROGRAMS = hasciicam
 
 hasciicam_SOURCES = \
 	hasciicam.c	\
-	ftp.c
+	ftplib.c
 
 
 hasciicam_LDADD = @LIBS@
@@ -137,7 +137,7 @@ CONFIG_CLEAN_FILES =
 bin_PROGRAMS = hasciicam$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 
-am_hasciicam_OBJECTS = hasciicam.$(OBJEXT) ftp.$(OBJEXT)
+am_hasciicam_OBJECTS = hasciicam.$(OBJEXT) ftplib.$(OBJEXT)
 hasciicam_OBJECTS = $(am_hasciicam_OBJECTS)
 hasciicam_DEPENDENCIES =
 hasciicam_LDFLAGS =
@@ -145,7 +145,7 @@ hasciicam_LDFLAGS =
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/ftp.Po ./$(DEPDIR)/hasciicam.Po
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/ftplib.Po ./$(DEPDIR)/hasciicam.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -231,7 +231,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ftp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ftplib.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hasciicam.Po@am__quote@
 
 distclean-depend:
