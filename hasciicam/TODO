@@ -1,20 +1,6 @@
 
-implement YUV420P grabbing to support pwc driver
-how to recognize pwc webcams:
-
-IsPhilips = FALSE;
-   if (ioctl(cam_fd, VIDIOCGCAP, &vcap) < 0)
-     return;
-   if (sscanf(vcap.name, "Philips %d webcam", &type) < 1) {
-     /* No match yet; try the PROBE */
-     if (ioctl(cam_fd, VIDIOCPWCPROBE, &probe) == 0)
-       if (!strcmp(vcap.name == probe.name))
-         IsPhilips = TRUE;
-   }
-   else
-     IsPhilips = TRUE;
-
-
-and some other ideas i'd love to find the time to realize or at least to
-write about in this TODO file
+- code cleanup and modularization
+- libcaca rendering
+- record and playback of hascii movies
+- encoded streaming
 

@@ -1,5 +1,5 @@
 /*  HasciiCam 1.0
- *  (c) 2000-2003 Denis Rojo aka jaromil
+ *  (c) 2000-2006 Denis Rojo aka jaromil
  *
  * This source code is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Public License as published 
@@ -16,6 +16,8 @@
  * Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * CONTRIBUTIONS :
+ * Matteo Scassa aka blended <ngul@mammete.it>
+ *  wider webcam support
  * Diego Torres aka rapid <rapid@ivworlds.org> 
  *  uid/gid handling and some bugfixes
  */
@@ -44,6 +46,8 @@
 #include <aalib.h>
 #include <ftplib.h>
 
+
+
 /* hasciicam modes */
 #define LIVE 0
 #define HTML 1
@@ -53,8 +57,8 @@
 
 char *version =
   "%s %s - (h)ascii 4 the masses! - http://ascii.dyne.org\n"
-  "(c)2000-2003 Denis Rojo < jaromil @ dyne.org >\n"
-  "watch out for the (h)ASCII ROOTS http://hascii.org\n\n";
+  "(c)2000-2006 Denis Roio < jaromil @ dyne.org >\n"
+  "watch out for the (h)ASCII ROOTS\n\n";
 
 char *help =
 /* "\x1B" "c" <--- SCREEN CLEANING ESCAPE CODE
@@ -79,9 +83,9 @@ char *help =
 "-S --font-size    html font size (1-4)      - default 1\n"
 "-a --font-face    html font to use          - default courier\n"
 "-r --refresh      refresh delay             - default 2\n"
-"-b --aabright     ascii brightness          - default 50\n"
-"-c --aacontrast   ascii contrast            - default 10\n"
-"-g --aagamma      ascii gamma               - default 10\n"
+"-b --aabright     ascii brightness          - default 60\n"
+"-c --aacontrast   ascii contrast            - default 4\n"
+"-g --aagamma      ascii gamma               - default 3\n"
 "-I --invert       invert colors             - default off\n"
 "-B --background   background color (hex)    - default 000000\n"
 "-F --foreground   foreground color (hex)    - default 00FF00\n";
@@ -189,7 +193,7 @@ struct aa_format hascii_format = {
   "</PRE>\n</FONT>\n</BODY>\n</HTML>\n",
   "\n",
   /*The order is:normal, dim, bold, boldfont, reverse, special */
-  {"%s", "%s", "%s", "%s", "%s",},
+  {"%s", "%s", "%s", "%s", "%s"},
   {"", "", "<B>", "", "<B>"},
   {"", "", "</B>", "", "</B>"},
   html_escapes
@@ -213,10 +217,22 @@ int palette;
 unsigned char *grey;
 int YtoRGB[256];
 
+void YUV420P_to_grey(unsigned char *src, unsigned char *dst, int w, int h) {
+  int c,cc;
+
+  for (c=0,cc=0;c<vid_geo.size;c++,cc+=1)
+    dst[c] = YtoRGB[src[cc]];
+	/*dst=src;*/
+
+}
+
 void YUV422_to_grey(unsigned char *src, unsigned char *dst, int w, int h) {
   int c,cc;
+
   for (c=0,cc=0;c<vid_geo.size;c++,cc+=2)
     dst[c] = YtoRGB[src[cc]];
+	/*dst=src;*/
+
 }
 
 int vid_detect(char *devfile) {
@@ -244,7 +260,7 @@ int vid_detect(char *devfile) {
   
   res = ioctl(dev,VIDIOCGCAP,&grab_cap);
   if(res<0) {
-    perror("!! error in VIDIOCGCAP: ");
+    perror("E' QUESTOOO!!!!!! error in VIDIOCGCAP: ");
     return -1;
   }
 
@@ -276,6 +292,13 @@ int vid_detect(char *devfile) {
   minh = grab_cap.minheight;
   maxw = grab_cap.maxwidth;
   maxh = grab_cap.maxheight;
+
+  /* set default size
+     if default is smaller than minimum size
+     set it to minimum size */
+  if(aa_geo.w <= minw/2) aa_geo.w = minw/2;
+  if(aa_geo.h <= minh/2) aa_geo.h = minh/2;
+
 
   if (ioctl (dev, VIDIOCGMBUF, &grab_map) == -1) {
     perror("!! error in ioctl VIDIOCGMBUF: ");
@@ -320,19 +343,31 @@ int vid_init() {
   vid_geo.h = aa_geo.h*2;
   vid_geo.w = aa_geo.w*2;
   vid_geo.size = vid_geo.w*vid_geo.h;
-  palette = VIDEO_PALETTE_YUV422;
+  palette =VIDEO_PALETTE_YUV422;
 
   grey = (unsigned char *) malloc (vid_geo.size);
   for (i=0; i< 256; i++)
-    YtoRGB[i] = 1.164*(i-16);
+    YtoRGB[i] = 1.164*(i-256); // was(i-16);
 
+
+  //#############CONTROLL PALETTE##################
+/*VIDEO_PALETTE_RGB24;/*VIDEO_PALETTE_YUV420P;VIDEO_PALETTE_RGB32;/V4L2_PIX_FMT_SBGGR8;V4L2_PIX_FMT_SN9C10X; VIDEO_PALETTE_YUV422;*/
   for(i=0; i<grab_map.frames; i++) {
     grab_buf[i].format = palette; //RGB24;
     grab_buf[i].frame  = i;
     grab_buf[i].height = vid_geo.h;
     grab_buf[i].width = vid_geo.w;
   }
-  
+ 
+  if (-1 == ioctl(dev,VIDIOCMCAPTURE,&grab_buf[0])) {
+    palette=VIDEO_PALETTE_YUV420P;
+    for(i=0; i<grab_map.frames; i++) {
+      grab_buf[i].format = palette; //RGB24;
+    }
+    if (-1 == ioctl(dev,VIDIOCMCAPTURE,&grab_buf[0])) {
+      fprintf(stderr,"error in ioctl VIDIOCMCAPTURE: %s",strerror(errno));
+    }
+  }
 
 
   grab_data = mmap (0, grab_map.size, PROT_READ | PROT_WRITE, MAP_SHARED, dev, 0);
@@ -341,9 +376,10 @@ int vid_init() {
     exit (1); }
 
   /* feed up the mmapped frames */
-    if (-1 == ioctl(dev,VIDIOCMCAPTURE,&grab_buf[0])) {
-      fprintf(stderr,"error in ioctl VIDIOCMCAPTURE: %s",strerror(errno));
-    }
+  if (-1 == ioctl(dev,VIDIOCMCAPTURE,&grab_buf[0])) {
+    fprintf(stderr,"error in ioctl VIDIOCMCAPTURE: %s",strerror(errno));
+  	}	
+	
   cur_frame = ok_frame = 0;
 
   /* init the html header */
@@ -386,8 +422,11 @@ unsigned char *grab_one () {
     return NULL;
   }
 
-  YUV422_to_grey(&grab_data[grab_map.offsets[ok_frame]],
-		 grey,vid_geo.w,vid_geo.h);
+  if(palette == VIDEO_PALETTE_YUV422) 
+    YUV422_to_grey(&grab_data[grab_map.offsets[ok_frame]],grey,vid_geo.w,vid_geo.h);
+  else if(palette == VIDEO_PALETTE_YUV420P)
+    YUV420P_to_grey(&grab_data[grab_map.offsets[ok_frame]],grey,vid_geo.w,vid_geo.h);
+  
 
   return grey;
 
@@ -411,11 +450,11 @@ config_init (int argc, char *argv[]) {
   strcpy(background,"000000");
   strcpy(foreground,"00FF00");
   strcpy(fontface,"courier"); /* you'd better choose monospace fonts */
-  aa_geo.w = 96;
-  aa_geo.h = 72;
-  aa_geo.bright = 50;
-  aa_geo.contrast = 10;
-  aa_geo.gamma = 10;
+  aa_geo.w = 80; // 96;
+  aa_geo.h = 40; // 72;
+  aa_geo.bright =  60;
+  aa_geo.contrast = 4;
+  aa_geo.gamma = 3;
   
   ftp_passive = 0;
 
@@ -569,12 +608,6 @@ config_init (int argc, char *argv[]) {
     }
   } while (res > 0);
 
-  /* live mode defaults to a different size */
-  if(!whchanged && mode==LIVE) {
-    aa_geo.w = 80;
-    aa_geo.h = 40;
-  }
-
   if (useftp) {
     /* i have to say i'm quite proud of the parsers i write :) */
     char *p, *pp;
@@ -629,7 +662,6 @@ main (int argc, char **argv) {
   /* register signal traps */
   if (signal (SIGINT, quitproc) == SIG_ERR) {
       perror ("Couldn't install SIGINT handler"); exit (1); }
-
   fprintf (stderr, version, PACKAGE, VERSION);
 
   /* default values */
@@ -639,18 +671,17 @@ main (int argc, char **argv) {
   /* initialize aalib default params */
   memcpy (&ascii_hwparms, &aa_defparams, sizeof (struct aa_hardware_params));
   ascii_rndparms = aa_getrenderparams();
+
   //  memcpy (&ascii_rndparms,&aa_defrenderparams,sizeof(struct aa_renderparams));
+  /* set hasciicam options */
+  config_init (argc, argv);
 
   /* gathering aalib commandline options */
   aa_parseoptions (&ascii_hwparms, ascii_rndparms, &argc, argv);
-
-  /* and hasciicam options */
-  config_init (argc, argv);
-
   /* detect and init video device */
-  if( vid_detect(device) > 0 )
+  if( vid_detect(device) > 0 ) {
     vid_init();
-  else
+  } else
     exit(-1);
 
   /* width/height image setup */
@@ -670,7 +701,7 @@ main (int argc, char **argv) {
       
     case HTML:
       ascii_save.name = aafile;
-      ascii_save.format = &hascii_format;
+      ascii_save.format = &aa_html_format;
       ascii_save.file = NULL;
 
       fprintf (stderr, "using HTML mode dumping to file %s\n", aafile);
@@ -741,20 +772,33 @@ main (int argc, char **argv) {
   //  ascii_rndparms->inversion = invert;
   //  ascii_rndparms->randomval = 0;
 
+	
+	
+    
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
   if (daemon_mode)
     daemon (0, 1);
 
-  /* cycle until ctrl-c */
-  
-  while (userbreak < 1) {
+
+
+
+  while (userbreak <1) {
     grab_one ();
-    
+
+    int i;
+	
+	/*aa_setpalette (gamma di colori, indice, colore rosso, verde, blu)*/
+	
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
     memcpy (aa_image (ascii_context), grey, vid_geo.size);
     aa_render (ascii_context, ascii_rndparms, 0, 0, 
 	       vid_geo.w,vid_geo.h);
+	
     aa_flush (ascii_context);
-    
+	
+	
     if (useftp) {
       //      if (!ftp_connected)
       //	ftp_connect (ftp_host, ftp_user, ftp_pass, ftp_dir);
@@ -766,8 +810,7 @@ main (int argc, char **argv) {
       if(!FtpRename("scolopendro",aafile,ftpconn))
 	fprintf(stderr,"Error in ftp rename %s\n",FtpLastResponse(ftpconn));
     }
-    
-    if (mode != LIVE) sleep (refresh);
+  
   }
 
   /* CLEAN EXIT */
@@ -787,6 +830,7 @@ main (int argc, char **argv) {
 
   fprintf (stderr, "cya!\n");
   exit (0);
+/*++userbreak;*/
 }
 
 /* signal handling */
@@ -799,3 +843,5 @@ quitproc (int Sig)
   userbreak = 1;
 
 }
+
+

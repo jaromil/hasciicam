@@ -3,8 +3,7 @@
 888888  dP__Yb  o.`Y8b Yb      88 88 Yb       dP__Yb  88YbdP88 
 88  88 dP""""Yb 8bodP'  YboodP 88 88  YboodP dP""""Yb 88 YY 88 
                 [ (h)ascii for the masses! ]
-                              version 0.9.1 codename RASTASOFT
-                                                    by jaromil
+                              version 1.0 codename ASCII ROOTS 
 
 Hasciicam makes it possible to have live ascii video on the web. It
 captures video from a tv card and renders it into ascii, formatting the
@@ -28,23 +27,10 @@ aalib - that's the great lib that makes possible ascii rendering
 	if your distribution does'nt includes it, you can fetch it
 	from the hasciicam webpage.
 
-video4linux driver - depending on your card - stable comes as a kernel module
-		bttv :: http://www.metzlerbros.de/bttv.html
-		buz :: http://www.munich-vision.de/buz
-		usb cams :: http://www.linux-usb.org
-
-i'm using hasciicam with a wintv hauppage card (bttv brooktree)
-using as a driver the bttv one coming with the 2.4.x kernel series
-
-i also had success with logitech/dexxa usb cams, using the mod_quickcam
-module available at http://qce-ga.sf.net
+running it:
 
 people reported success with several pci and usb devices, refer to
 video4linux documentation for further informations
-
-at the moment hasciicam DOES NOT WORKS with PHILIPS WEBCAMS (and any
-other webcam using the pwc driver). help is needed with YUV420P
-grabbing to make it work - mail jaromil /@/ dyne.org for suggestions.
 
 ---
 
@@ -62,7 +48,7 @@ ADDITIONAL CREDITS
 code snippets hacks and ideas have been contributed by:
  jan hubicka and the aalibcrew, gerdknorr, mathop, augustonero, boffh,
  martin guy, pbm, megabug, rat, rapid, alessandro preite martinez, hks1,
- thomas pfau, knorke, dr.meccoi
+ thomas pfau, knorke, blended
 
 special thanks to:
 # LOA hacklab milano :: http://loa.hacklab.it
@@ -77,20 +63,12 @@ special thanks to:
 # FREAKNET medialab catania :: http://freaknet.org
 	for knowledge, place, sun and connectivity under the vulcano!
 	
----
-
-DISCUSSION
-
-feel free to join the hasciicam@dyne.org mailinglist to discuss
-bugs, development of new features and support for new devices.
-
-have phun!
 
 -- 
  jaromil   dyne.org rasta coder   http://rastasoft.org
    
  dyne:bolic GNU/Linux liveCD      http://dynebolic.org 
- MuSE Streamer v0.8.1             http://muse.dyne.org 
- FreeJ v0.5 - free the veejay!    http://freej.org   
+ MuSE Streamer                    http://muse.dyne.org 
+ FreeJ - free the veejay!         http://freej.org   
  FARAH in Palestine               http://farah.dyne.org
 
