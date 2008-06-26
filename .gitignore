@@ -1,0 +1,14 @@
+Makefile
+hasciicam
+autom4te.cache
+config.h
+config.log
+stamp-h1
+*.[oa]
+*.so
+*.la
+*.lo
+*~
+.deps
+.libs
+TAGS

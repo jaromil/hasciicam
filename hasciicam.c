@@ -164,6 +164,7 @@ int gid = -1;
 /* buffers */
 unsigned char *image = NULL; /* mmapped */
 char aafile[256];
+char aatmpfile[256];
 
 
 /* declare the sighandler */
@@ -176,7 +177,7 @@ struct aa_renderparams *ascii_rndparms;
 struct aa_hardware_params ascii_hwparms;
 struct aa_savedata ascii_save;
 
-char html_header[512];
+char hascii_header[1024];
 
 char *html_escapes[] =
   { "<", "&lt;", ">", "&gt;", "&", "&amp;", NULL };
@@ -189,7 +190,7 @@ struct aa_format hascii_format = {
   NULL,
   "Pure html",
   ".html",
-  html_header,
+  hascii_header,
   "</PRE>\n</FONT>\n</BODY>\n</HTML>\n",
   "\n",
   /*The order is:normal, dim, bold, boldfont, reverse, special */
@@ -383,7 +384,7 @@ int vid_init() {
   cur_frame = ok_frame = 0;
 
   /* init the html header */
-  snprintf (&html_header[0], 1024,
+  snprintf (&hascii_header[0], 1024,
 	    "<HTML>\n <HEAD> <TITLE>wow! (h)ascii 4 the masses!</TITLE>\n"
 	    "<META HTTP-EQUIV=\"refresh\" CONTENT=\"%u\"; url=\"%s\">\n"
 	    "<META HTTP-EQUIV=\"Pragma\" CONTENT=\"no-cache\">\n"
@@ -700,8 +701,9 @@ main (int argc, char **argv) {
       break;
       
     case HTML:
-      ascii_save.name = aafile;
-      ascii_save.format = &aa_html_format;
+      snprintf(aatmpfile,255,"%s.tmp",aafile);
+      ascii_save.name = aatmpfile;
+      ascii_save.format = &hascii_format;
       ascii_save.file = NULL;
 
       fprintf (stderr, "using HTML mode dumping to file %s\n", aafile);
@@ -797,7 +799,8 @@ main (int argc, char **argv) {
 	       vid_geo.w,vid_geo.h);
 	
     aa_flush (ascii_context);
-	
+  //  unlink(aafile);
+    rename(aatmpfile,aafile);
 	
     if (useftp) {
       //      if (!ftp_connected)
