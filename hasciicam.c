@@ -73,8 +73,7 @@ char *help =
 "-m --mode         mode: live|html|text      - default live\n"
 "-d --device       video grabbing device     - default /dev/video\n"
 "-i --input        input channel number      - default 1\n"
-"-n --norm         norm: pal|ntsc|secam|auto - default auto\n"
-"-s --size         ascii image size WxH      - default 96x72\n"
+//"-s --size         ascii image size WxH      - default 96x72\n"
 "-o --aafile       dumped file               - default hasciicam.[txt|html]\n"
 "-f --ftp          ie: :user%pass@host:dir   - default none\n"
 "-D --daemon       run in background         - default foregrond\n"
@@ -99,8 +98,7 @@ const struct option long_options[] = {
   {"mode", required_argument, NULL, 'm'},
   {"device", required_argument, NULL, 'd'},
   {"input", required_argument, NULL, 'i'},
-  {"norm", required_argument, NULL, 'n'},
-  {"size", required_argument, NULL, 's'},
+//  {"size", required_argument, NULL, 's'},
   {"aafile", required_argument, NULL, 'o'},
   {"ftp", required_argument, NULL, 'f'},
   {"daemon", no_argument, NULL, 'D'},
@@ -121,7 +119,7 @@ const struct option long_options[] = {
   {0, 0, 0, 0}
 };
 
-char *short_options = "hHvqm:d:i:n:s:f:DS:a:r:o:b:c:g:IB:F:O:Q:U:G:";
+char *short_options = "hHvqm:d:i:f:DS:a:r:o:b:c:g:IB:F:O:Q:U:G:";
 
 /* default configuration */
 int quiet = 0;
@@ -130,7 +128,6 @@ int useftp = 0;
 int inputch = 0;
 int daemon_mode = 0;
 int invert = 0;
-int norm = VIDEO_MODE_AUTO;
 
 struct geometry {
   int w, h, size;
@@ -516,18 +513,6 @@ config_init (int argc, char *argv[]) {
 	exit (1);
       }
       break;
-    case 'n':
-      if (strcmp (optarg, "pal") == 0)
-	norm = VIDEO_MODE_PAL;
-      else if (strcmp (optarg, "ntsc") == 0)
-	norm = VIDEO_MODE_NTSC;
-      else if (strcmp (optarg, "secam") == 0)
-	norm = VIDEO_MODE_SECAM;
-      else if (strcmp (optarg, "auto") == 0)
-	norm = VIDEO_MODE_AUTO;
-      else
-	fprintf (stderr, "!! invalid video norm selected, using auto\n");
-      break;
       
     case 's':
       {
@@ -719,7 +704,7 @@ main (int argc, char **argv) {
   setuid (uid);
   setgid (gid);
 
-  fprintf (stderr, "Ascii size is %dx%d\n", aa_geo.w, aa_geo.h);
+  fprintf (stderr, "Ascii size is %dx%d\n", aw, ah);
 
   switch (mode)
     {

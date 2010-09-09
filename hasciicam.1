@@ -7,8 +7,6 @@ hasciicam \- (h)ascii for the masses!
 [ \fB-m \fImode\fR ]
 [ \fB-d \fIdevice\fR ]
 [ \fB-i \fIinput\fR ]
-[ \fB-n \fInorm\fR ]
-[ \fB-s \fIsize\fR ]
 [ \fB-o \fIoutput\fR ]
 [ \fB-f \fI:user%pass@host:/dir\fR ]
 [ \fBrendering\-options\fR ]
@@ -47,12 +45,6 @@ Use specified capture device. Default is \fB/dev/video\fP.
 .B
 .IP "-i --input"
 Selects the \fBdevice\fP's input channel to be used for grabbing frames. Default is \fB1\fP.
-.B
-.IP "-n --norm"
-Selects video format to be used on tuner: \fBpal\fP | \fBntsc\fP | \fBsecam\fP | \fBauto\fP. Default is \fBauto\fP.
-.B
-.IP "-s --size"
-Sets rendered ascii frames size to \fBWxH\fP characters. Grabbed frame size is computed from this value, resulting into (W<<1)x(H<<1). Default is \fB96x72\fP, or the minimum grabbing size supported by the device if greater.
 .B
 .IP "-o --aafile"
 Defines the file where to save rendered ascii, overwrited every \fIrefresh\fP seconds. Default is \fBhasciicam.html\fP when in \fBhtml\fP mode, \fBhasciicam.txt\fP when in \fBtext\fP mode (unuseful when in \fBlive\fP mode).
@@ -94,9 +86,9 @@ Specifies the foreground color to be used in the form of a \fIhex RGB triplet\fR
 .SH EXAMPLES
 .B hasciicam -m html -o watchme.html
 .br
-puts your \fIhtml\fP formatted ascii into watchme.html
+puts your \fIhtml\fP formatted ascii into watchme.html - then just open it with your favourite browser.
 .br
-.B hasciicam -m text -s79x24 -o ~/.plan
+.B hasciicam -m text -o ~/.plan
 .br
 puts your ascii into your local .plan (fingercam)
 .B hasciicam -m html -S 2 -o index.html -f :jaromil%sasuchen@dyne.org:korova
