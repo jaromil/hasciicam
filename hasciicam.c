@@ -1,9 +1,10 @@
-/*  HasciiCam 1.0
- *  (c) 2000-2006 Denis Rojo aka jaromil
+/*  HasciiCam 2.0
+ *
+ *  (c) 2000-2010 Denis Roio <jaromil@dyne.org>
  *
  * This source code is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Public License as published 
- * by the Free Software Foundation; either version 2 of the License,
+ * by the Free Software Foundation; either version 3 of the License,
  * or (at your option) any later version.
  *
  * This source code is distributed in the hope that it will be useful,
@@ -15,11 +16,14 @@
  * this source code; if not, write to:
  * Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * CONTRIBUTIONS :
- * Matteo Scassa aka blended <ngul@mammete.it>
- *  wider webcam support
- * Diego Torres aka rapid <rapid@ivworlds.org> 
- *  uid/gid handling and some bugfixes
+ * Code snippets included by:
+ * Josto Chinelli
+ * Alessandro Preite Martinez
+ * Diego Torres aka Rapid
+ * Matteo Scassa aka Blended
+ * Hellekin O. Wolf
+ * Dan Stowell
+ *
  */
 
 #include <stdio.h>
@@ -46,8 +50,6 @@
 #include <aalib.h>
 #include <ftplib.h>
 
-
-
 /* hasciicam modes */
 #define LIVE 0
 #define HTML 1
@@ -56,9 +58,8 @@
 /* commandline stuff */
 
 char *version =
-  "%s %s - (h)ascii 4 the masses! - http://ascii.dyne.org\n"
-  "(c)2000-2006 Denis Roio < jaromil @ dyne.org >\n"
-  "watch out for the (h)ASCII ROOTS\n\n";
+    "\n%s %s - (h)ascii 4 the masses! - http://ascii.dyne.org\n"
+    "(c)2000-2010 by Jaromil @ RASTASOFT\n\n";
 
 char *help =
 /* "\x1B" "c" <--- SCREEN CLEANING ESCAPE CODE
@@ -126,7 +127,7 @@ char *short_options = "hHvqm:d:i:n:s:f:DS:a:r:o:b:c:g:IB:F:O:Q:U:G:";
 int quiet = 0;
 int mode = 0;
 int useftp = 0;
-int input = 1;
+int inputch = 0;
 int daemon_mode = 0;
 int invert = 0;
 int norm = VIDEO_MODE_AUTO;
@@ -200,237 +201,242 @@ struct aa_format hascii_format = {
   html_escapes
 };
 
-/* v4l */
-unsigned char *grab_data;
-struct video_capability grab_cap;
-struct video_mbuf grab_map;
-struct video_mmap grab_buf[32];
-struct video_channel grab_chan;
-struct video_picture grab_pic;
-struct video_tuner grab_tuner;
-int minw, minh, maxw, maxh;
+/* v4l2 (thanks Dan)*/
+int buftype = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+struct v4l2_capability capability;
+struct v4l2_input input;
+struct v4l2_standard standard;
+struct v4l2_format format;
+struct v4l2_requestbuffers reqbuf;
+struct v4l2_buffer buffer;
+struct {
+    void *start;
+    size_t length;
+} *buffers;
 
-int dev = -1;
-int cur_frame, ok_frame;
-int palette;
 
+int fd = -1;
 /* greyscale image is sampled from Y luminance component */
 unsigned char *grey;
 int YtoRGB[256];
+int xstep=2, ystep=4;
+int xbytestep;
+int ybytestep;
+int renderhop=2, framenum=0; // renderhop is how many frames to guzzle before rendering
+int gw, gh; // number of cols/rows in grey intermediate representation
+int vw, vh; // video w and h
+int aw, ah; // ascii w and h
+size_t greysize;
+int vbytesperline;
 
-void YUV420P_to_grey(unsigned char *src, unsigned char *dst, int w, int h) {
-  int c,cc;
 
-  for (c=0,cc=0;c<vid_geo.size;c++,cc+=1)
-    dst[c] = YtoRGB[src[cc]];
-	/*dst=src;*/
-
-}
 
 void YUV422_to_grey(unsigned char *src, unsigned char *dst, int w, int h) {
-  int c,cc;
-
-  for (c=0,cc=0;c<vid_geo.size;c++,cc+=2)
-    dst[c] = YtoRGB[src[cc]];
-	/*dst=src;*/
-
+    unsigned char *writehead, *readhead;
+    int x,y;
+    writehead = dst;
+    readhead  = src;
+    for(y=0; y<gh; ++y){
+        for(x=0; x<gw; ++x){
+            *(writehead++) = *readhead;
+            readhead += xbytestep;
+        }
+        readhead += ybytestep;
+    }
 }
 
 int vid_detect(char *devfile) {
-  int counter, res;
-  char *capabilities[] = {
-    "VID_TYPE_CAPTURE          can capture to memory",
-    "VID_TYPE_TUNER            has a tuner of some form",
-    "VID_TYPE_TELETEXT         has teletext capability",
-    "VID_TYPE_OVERLAY          can overlay its image to video",
-    "VID_TYPE_CHROMAKEY        overlay is chromakeyed",
-    "VID_TYPE_CLIPPING         overlay clipping supported",
-    "VID_TYPE_FRAMERAM         overlay overwrites video memory",
-    "VID_TYPE_SCALES           supports image scaling",
-    "VID_TYPE_MONOCHROME       image capture is grey scale only",
-    "VID_TYPE_SUBCAPTURE       capture can be of only part of the image"
-  };
+    int errno;
+    unsigned int i;
 
-  if (-1 == (dev = open(devfile,O_RDWR|O_NONBLOCK))) {
-    perror("!! error in opening video capture device: ");
-    return -1;
-  } else {
-    close(dev);
-    dev = open(devfile,O_RDWR);
-  }
-  
-  res = ioctl(dev,VIDIOCGCAP,&grab_cap);
-  if(res<0) {
-    perror("E' QUESTOOO!!!!!! error in VIDIOCGCAP: ");
-    return -1;
-  }
+    if (-1 == (fd = open(devfile,O_RDWR|O_NONBLOCK))) {
+        perror("!! error in opening video capture device: ");
+        return -1;
+    } else {
+        close(fd);
+        fd = open(devfile,O_RDWR);
+    }
 
-  fprintf(stderr,"Device detected is %s\n",devfile);
-  fprintf(stderr,"%s\n",grab_cap.name);
-  fprintf(stderr,"%u channels detected\n",grab_cap.channels);
-  fprintf(stderr,"max size w[%u] h[%u] - min size w[%u] h[%u]\n",grab_cap.maxwidth,grab_cap.maxheight,grab_cap.minwidth,grab_cap.minheight);
-  fprintf(stderr,"Video capabilities:\n");
-  for (counter=0;counter<11;counter++)
-    if (grab_cap.type & (1 << counter)) fprintf(stderr,"%s\n",capabilities[counter]);
-  
-  if (-1 == ioctl(dev, VIDIOCGPICT, &grab_pic)) {
-    perror("!! ioctl VIDIOCGPICT: ");
-    exit(1);
-  }
-  
-  if (grab_pic.palette & VIDEO_PALETTE_GREY)
-    fprintf(stderr,"VIDEO_PALETTE_GREY        device is able to grab greyscale frames\n");
+// Check that streaming is supported
+    memset(&capability, 0, sizeof(capability));
+    if(-1 == ioctl(fd, VIDIOC_QUERYCAP, &capability)) {
+	perror("VIDIOC_QUERYCAP");
+	exit(EXIT_FAILURE);
+    }
+    if((capability.capabilities & V4L2_CAP_VIDEO_CAPTURE) == 0){
+	printf("Fatal: Device %s does not support video capture\n", capability.card);
+	exit(EXIT_FAILURE);
+    }
+    if((capability.capabilities & V4L2_CAP_STREAMING) == 0){
+	printf("Fatal: Device %s does not support streaming data capture\n", capability.card);
+	exit(EXIT_FAILURE);
+    }
 
-  
-  if(grab_cap.type & VID_TYPE_TUNER)
-    /* if the device does'nt has any tuner, so we avoid some ioctl
-       this should be a fix for many webcams, thanks to Ben Wilson */
-    have_tuner = 1;
-  
+    fprintf(stderr,"Device detected is %s\n",devfile);
+    fprintf(stderr,"Card name: %s\n",capability.card);
 
-  /* set and check the minwidth and minheight */
-  minw = grab_cap.minwidth;
-  minh = grab_cap.minheight;
-  maxw = grab_cap.maxwidth;
-  maxh = grab_cap.maxheight;
-
-  /* set default size
-     if default is smaller than minimum size
-     set it to minimum size */
-  if(aa_geo.w <= minw/2) aa_geo.w = minw/2;
-  if(aa_geo.h <= minh/2) aa_geo.h = minh/2;
-
-
-  if (ioctl (dev, VIDIOCGMBUF, &grab_map) == -1) {
-    perror("!! error in ioctl VIDIOCGMBUF: ");
-    return -1;
-  }
-  /* print memory info */
-  fprintf(stderr,"memory map of %i frames: %i bytes\n",grab_map.frames,grab_map.size);
-  for(counter=0;counter<grab_map.frames;counter++)
-    fprintf(stderr,"Offset of frame %i: %i\n",counter,grab_map.offsets[counter]);
-  return dev;
+// Switch to the selected video input
+    if(-1 == ioctl(fd, VIDIOC_S_INPUT, &inputch)) {
+	perror("VIDIOC_S_INPUT");
+	exit(EXIT_FAILURE);
+    }
+    
+// Get info about current video input
+    memset(&input, 0, sizeof(input));
+    input.index = inputch;
+    if(-1 == ioctl(fd, VIDIOC_ENUMINPUT, &input)) {
+	perror("VIDIOC_ENUMINPUT");
+	exit(EXIT_FAILURE);
+    }
+    printf("Current input is %s\n", input.name);
+// example 1-6
+    memset(&standard, 0, sizeof(standard));
+    standard.index = 0;
+    while(0 == ioctl (fd, VIDIOC_ENUMSTD, &standard)){
+	if(standard.id & input.std)
+            printf("   - %s\n", standard.name);
+	standard.index++;
+    }
+// Need to find out (request?) specific data format (sec 1.10.1)
+    memset(&format, 0, sizeof(format));
+    format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+//noeffect   format.fmt.pix.width  = 320;
+//noeffect   format.fmt.pix.height = 240;
+    if(-1 == ioctl(fd, VIDIOC_G_FMT, &format)) {
+	perror("VIDIOC_G_FMT");
+	exit(EXIT_FAILURE);
+    }
+// the format.fmt.pix member, a v4l2_pix_format, is now filled in
+    printf("Current capture is %u x %u\n",
+           format.fmt.pix.width, format.fmt.pix.height);
+    printf("format %4.4s, %u bytes-per-line\n", 
+           (char*)&format.fmt.pix.pixelformat,
+           format.fmt.pix.bytesperline);
+    
+    return 1;
 }
 
 
 int vid_init() {
+    int i, j;
 
-  int linespace = 5;
-  int i;
-
-  /* set image source and TV norm */
-  grab_chan.channel = input = (grab_cap.channels>1) ? 1 : 0;
-
-  
-  if(have_tuner) { /* does this only if the device has a tuner */
-    //   _band = 5; /* default band is europe west */
-    //   _freq = 0;
-    /* resets CHAN */
-    if (-1 == ioctl(dev,VIDIOCGCHAN,&grab_chan))
-      fprintf(stderr,"!! error in ioctl VIDIOCGCHAN: %s",strerror(errno));
-
-    if (-1 == ioctl(dev,VIDIOCSCHAN,&grab_chan))
-      fprintf(stderr,"error in ioctl VIDIOCSCHAN: %s",strerror(errno));
+    vw = format.fmt.pix.width;
+    vh = format.fmt.pix.height;
+    vbytesperline = format.fmt.pix.bytesperline;
+    xbytestep = xstep + xstep; // for YUV422. for other formats may differ
+    ybytestep = vbytesperline * (ystep-1);
+// we shrink our pixels crudely, by hopping over them:
+    gw = vw / xstep;
+    gh = vh / ystep;
+// aalib converts every block of 4 pixels to one character, so our sizes shrink by 2:
+    aw = gw / 2;
+    ah = gh / 2;
     
-    /* get/set TUNER settings */
-    if (-1 == ioctl(dev,VIDIOCGTUNER,&grab_tuner))
-      fprintf(stderr,"error in ioctl VIDIOCGTUNER: %s",strerror(errno));
-  }
+    greysize = gw * gh;
+    grey = malloc(greysize); // To get grey from YUYV we simply ignore the U and V bytes
+    printf("Grey buffer is %i bytes\n", greysize);
+    for (j=0; j< 256; ++j)
+        YtoRGB[j] = 1.164*(j-256);    
 
-  /* init video size from ascii size
-     1 ascii pixel = 4 video pixel
-     so video h&w are each double than ascii */
-  aa_geo.size = aa_geo.w*aa_geo.h;
-  vid_geo.h = aa_geo.h*2;
-  vid_geo.w = aa_geo.w*2;
-  vid_geo.size = vid_geo.w*vid_geo.h;
-  palette =VIDEO_PALETTE_YUV422;
-
-  grey = (unsigned char *) malloc (vid_geo.size);
-  for (i=0; i< 256; i++)
-    YtoRGB[i] = 1.164*(i-256); // was(i-16);
-
-
-  //#############CONTROLL PALETTE##################
-/*VIDEO_PALETTE_RGB24;/*VIDEO_PALETTE_YUV420P;VIDEO_PALETTE_RGB32;/V4L2_PIX_FMT_SBGGR8;V4L2_PIX_FMT_SN9C10X; VIDEO_PALETTE_YUV422;*/
-  for(i=0; i<grab_map.frames; i++) {
-    grab_buf[i].format = palette; //RGB24;
-    grab_buf[i].frame  = i;
-    grab_buf[i].height = vid_geo.h;
-    grab_buf[i].width = vid_geo.w;
-  }
- 
-  if (-1 == ioctl(dev,VIDIOCMCAPTURE,&grab_buf[0])) {
-    palette=VIDEO_PALETTE_YUV420P;
-    for(i=0; i<grab_map.frames; i++) {
-      grab_buf[i].format = palette; //RGB24;
+    memset (&reqbuf, 0, sizeof (reqbuf));
+    reqbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    reqbuf.memory = V4L2_MEMORY_MMAP;
+    reqbuf.count = 32;
+    
+    if (-1 == ioctl (fd, VIDIOC_REQBUFS, &reqbuf)) {
+        if (errno == EINVAL)
+            printf ("Fatal: Video capturing by mmap-streaming is not supported\n");
+        else
+            perror ("VIDIOC_REQBUFS");
+        
+        exit (EXIT_FAILURE);
     }
-    if (-1 == ioctl(dev,VIDIOCMCAPTURE,&grab_buf[0])) {
-      fprintf(stderr,"error in ioctl VIDIOCMCAPTURE: %s",strerror(errno));
+    buffers = calloc (reqbuf.count, sizeof (*buffers));
+    if (buffers == NULL){
+        printf("calloc failure!");
+        exit (EXIT_FAILURE);
     }
-  }
 
+    for (i = 0; i < reqbuf.count; i++) {
+        
+        memset (&buffer, 0, sizeof (buffer));
+        buffer.type = reqbuf.type;
+	buffer.memory = V4L2_MEMORY_MMAP;
+        buffer.index = i;
+        
+        if (-1 == ioctl (fd, VIDIOC_QUERYBUF, &buffer)) {
+            perror ("VIDIOC_QUERYBUF");
+            exit (EXIT_FAILURE);
+        }
+        
+        buffers[i].length = buffer.length; /* remember for munmap() */
+        
+        buffers[i].start = mmap (NULL, buffer.length,
+                                 PROT_READ | PROT_WRITE, /* recommended */
+                                 MAP_SHARED,             /* recommended */
+                                 fd, buffer.m.offset);
+        
+        if (MAP_FAILED == buffers[i].start) {
+            /* If you do not exit here you should unmap() and free()
+             *                    the buffers mapped so far. */
+            perror ("mmap");
+            exit (EXIT_FAILURE);
+        }
+    }
+/* OK, the memory is mapped, so let's queue up the buffers,
+   next is: turn on streaming, and do the business. */
 
-  grab_data = mmap (0, grab_map.size, PROT_READ | PROT_WRITE, MAP_SHARED, dev, 0);
-  if (MAP_FAILED == grab_data) {
-    perror ("Cannot allocate video4linux grabber buffer ");
-    exit (1); }
-
-  /* feed up the mmapped frames */
-  if (-1 == ioctl(dev,VIDIOCMCAPTURE,&grab_buf[0])) {
-    fprintf(stderr,"error in ioctl VIDIOCMCAPTURE: %s",strerror(errno));
-  	}	
-	
-  cur_frame = ok_frame = 0;
-
-  /* init the html header */
-  snprintf (&hascii_header[0], 1024,
-	    "<HTML>\n <HEAD> <TITLE>wow! (h)ascii 4 the masses!</TITLE>\n"
-	    "<META HTTP-EQUIV=\"refresh\" CONTENT=\"%u\"; url=\"%s\">\n"
-	    "<META HTTP-EQUIV=\"Pragma\" CONTENT=\"no-cache\">\n"
-	    "<STYLE TYPE=\"text/css\">\n"
-	    "<!--\npre {\nletter-spacing: 1px;\n"
-	    "layer-background-color: Black;\n"
-	    "left : auto;\nline-height : %upx;\n}\n-->\n"
-	    "</STYLE>\n</HEAD>\n<BODY bgcolor=\"#%s\" text=\"#%s\">\n"
-	    "<FONT SIZE=%u face=\"%s\">\n<PRE>\n",
-	    refresh, aafile, linespace, background, foreground, fontsize,
-	    fontface);
-  return dev;
+    for (i = 0; i < reqbuf.count; i++) {
+        // queue up all the buffers for the first time        
+        memset (&buffer, 0, sizeof (buffer));
+        buffer.type = reqbuf.type;
+	buffer.memory = V4L2_MEMORY_MMAP;
+        buffer.index = i;
+        
+        if (-1 == ioctl (fd, VIDIOC_QBUF, &buffer)) {
+            perror ("VIDIOC_QBUF");
+            exit (EXIT_FAILURE);
+        }	
+    }
+    
+    // turn on streaming
+    if(-1 == ioctl(fd, VIDIOC_STREAMON, &buftype)) {
+	perror("VIDIOC_STREAMON");
+	exit(EXIT_FAILURE);
+    }
+    
+    
+    for (i = 0; i < greysize; i++) {
+	grey[i] = i % 160; //256;
+    }
 }
 
-unsigned char *grab_one () {
-  int c = 0, cc=0;
-  /* we use just one frame
-     no matters about the capability of the cam
-     this makes grabbing much faster on my webcam
-     i hope also on yours
-     ok_frame = cur_frame;
-     cur_frame = (cur_frame>=grab_map.frames) ? 0 : cur_frame+1;
-  */
 
-  ok_frame = 0; cur_frame = 0;
+void grab_one () {
 
-  grab_buf[ok_frame].format = palette;
-  if (-1 == ioctl(dev,VIDIOCSYNC,&grab_buf[ok_frame])) {
-    perror("error in ioctl VIDIOCSYNC: ");
-    return NULL;
-  }
-
-  grab_buf[cur_frame].format = palette;
-  if (-1 == ioctl(dev,VIDIOCMCAPTURE,&grab_buf[cur_frame])) {
-    perror("error in ioctl VIDIOCMCAPTURE: ");
-    return NULL;
-  }
-
-  if(palette == VIDEO_PALETTE_YUV422) 
-    YUV422_to_grey(&grab_data[grab_map.offsets[ok_frame]],grey,vid_geo.w,vid_geo.h);
-  else if(palette == VIDEO_PALETTE_YUV420P)
-    YUV420P_to_grey(&grab_data[grab_map.offsets[ok_frame]],grey,vid_geo.w,vid_geo.h);
-  
-
-  return grey;
-
+    // Can we have a buffer please?
+    if (-1 == ioctl (fd, VIDIOC_DQBUF, &buffer)) {
+        perror ("VIDIOC_DQBUF");
+        exit (EXIT_FAILURE);
+    }	
+    
+    if((++framenum) == renderhop){
+        framenum=0;
+        YUV422_to_grey(buffers[buffer.index].start, grey, vw, vh);
+        
+        memcpy( aa_image(ascii_context), grey, greysize);
+        aa_fastrender(ascii_context, 0, 0, vw/(xstep*2), vh/(ystep*2)); //TODO are the w&h args correct?
+//		aa_render(ascii_context, ascii_rndparms, 0, 0, vw/(xstep*2), vh/(ystep*2)); //TODO are the w&h args correct?
+        aa_flush(ascii_context);
+    }
+    
+    
+    // Thanks for lending us your buffer, you may have it back again:
+    if (-1 == ioctl (fd, VIDIOC_QBUF, &buffer)) {
+        perror ("VIDIOC_QBUF");
+        exit (EXIT_FAILURE);
+    }	
+    
 }
 
 
@@ -451,6 +457,7 @@ config_init (int argc, char *argv[]) {
   strcpy(background,"000000");
   strcpy(foreground,"00FF00");
   strcpy(fontface,"courier"); /* you'd better choose monospace fonts */
+
   aa_geo.w = 80; // 96;
   aa_geo.h = 40; // 72;
   aa_geo.bright =  60;
@@ -499,12 +506,12 @@ config_init (int argc, char *argv[]) {
       strncpy(device,optarg,256);
       break;
     case 'i':
-      input = atoi (optarg);
+      inputch = atoi (optarg);
       /* 
 	 here we assume that capture cards have maximum 3 channels
 	 (usually the 4th, when present, is the radio tuner) 
       */
-      if (input > 3) {
+      if (inputch > 3) {
 	fprintf (stderr, "invalid input selected\n");
 	exit (1);
       }
@@ -656,9 +663,12 @@ config_init (int argc, char *argv[]) {
 
 int
 main (int argc, char **argv) {
-  /* reminder:
-     !!! grabbing height & width should be double
-     the ascii context width and height !!! */
+    int i;
+    char temp[160];
+
+    /* reminder:
+       !!! grabbing height & width should be double
+       the ascii context width and height !!! */
 
   /* register signal traps */
   if (signal (SIGINT, quitproc) == SIG_ERR) {
@@ -669,6 +679,7 @@ main (int argc, char **argv) {
   uid = getuid ();
   gid = getgid ();
 
+
   /* initialize aalib default params */
   memcpy (&ascii_hwparms, &aa_defparams, sizeof (struct aa_hardware_params));
   ascii_rndparms = aa_getrenderparams();
@@ -676,7 +687,6 @@ main (int argc, char **argv) {
   //  memcpy (&ascii_rndparms,&aa_defrenderparams,sizeof(struct aa_renderparams));
   /* set hasciicam options */
   config_init (argc, argv);
-
   /* gathering aalib commandline options */
   aa_parseoptions (&ascii_hwparms, ascii_rndparms, &argc, argv);
   /* detect and init video device */
@@ -686,13 +696,30 @@ main (int argc, char **argv) {
     exit(-1);
 
   /* width/height image setup */
-  ascii_hwparms.width = aa_geo.w;
-  ascii_hwparms.height = aa_geo.h;
+  ascii_hwparms.font = NULL; // default font, thanks
+  ascii_hwparms.width = aw;
+  ascii_hwparms.height = ah;
+
+
+  /* init the html header */
+  snprintf (&hascii_header[0], 1024,
+	    "<HTML>\n <HEAD> <TITLE>wow! (h)ascii 4 the masses!</TITLE>\n"
+	    "<META HTTP-EQUIV=\"refresh\" CONTENT=\"%u\"; url=\"%s\">\n"
+	    "<META HTTP-EQUIV=\"Pragma\" CONTENT=\"no-cache\">\n"
+	    "<STYLE TYPE=\"text/css\">\n"
+	    "<!--\npre {\nletter-spacing: 1px;\n"
+	    "layer-background-color: Black;\n"
+	    "left : auto;\nline-height : %upx;\n}\n-->\n"
+	    "</STYLE>\n</HEAD>\n<BODY bgcolor=\"#%s\" text=\"#%s\">\n"
+	    "<FONT SIZE=%u face=\"%s\">\n<PRE>\n",
+	    refresh, aafile, linespace, background, foreground, fontsize,
+	    fontface);
+
   
   setuid (uid);
   setgid (gid);
 
-  fprintf (stderr, " - (h)ascii size is %dx%d\n", aa_geo.w, aa_geo.h);
+  fprintf (stderr, "Ascii size is %dx%d\n", aa_geo.w, aa_geo.h);
 
   switch (mode)
     {
@@ -737,7 +764,6 @@ main (int argc, char **argv) {
     
   while (useftp)
     {
-      char temp[160];
       fprintf (stderr, "ftp push on ftp://%s@%s:%s\n", ftp_user, ftp_host, ftp_dir);
 
       FtpInit();
@@ -787,10 +813,7 @@ main (int argc, char **argv) {
 
 
   while (userbreak <1) {
-    grab_one ();
-
-    int i;
-	
+    grab_one ();	
 	/*aa_setpalette (gamma di colori, indice, colore rosso, verde, blu)*/
 	
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -819,18 +842,21 @@ main (int argc, char **argv) {
   /* CLEAN EXIT */
   
   if(useftp)
-    FtpClose(ftpconn);
-
-  aa_close(ascii_context);
-  //  free(ascii_rndparms);
-
-  free (grey);
+      FtpClose(ftpconn);
   
-  if (dev > 0) close (dev);
+  // turn off streaming
+  if(-1 == ioctl(fd, VIDIOC_STREAMOFF, &buftype)) {
+      perror("VIDIOC_STREAMOFF");
+  }
 
-  if (image != NULL)
-    munmap (grab_data, grab_map.size);
+/* Cleanup. */
 
+  for (i = 0; i < reqbuf.count; i++)
+      munmap (buffers[i].start, buffers[i].length);
+  
+  aa_close(ascii_context);
+  free(grey);
+  if(fd>0) close(fd);
   fprintf (stderr, "cya!\n");
   exit (0);
 /*++userbreak;*/
@@ -842,9 +868,7 @@ quitproc (int Sig)
 {
 
   fprintf (stderr, "interrupt caught, exiting.\n");
-
   userbreak = 1;
-
 }
 
 
