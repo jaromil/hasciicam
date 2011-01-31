@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=HasciiCam
+Type=Application
+GenericName=HasciiCam
+Comment=(h)ascii for the masses!
+Exec=hasciicam %U
+TryExec=hasciicam
+Icon=hasciicam.png
+Terminal=false
+Categories=AudioVideo;
+X-AppInstall-Package=hasciicam

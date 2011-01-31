@@ -1,4 +1,4 @@
-hasciicam
+src/hasciicam
 *.[oa]
 *.so
 *.la
@@ -8,7 +8,6 @@ hasciicam
 .libs
 Makefile
 Makefile.in
-hasciicam
 autom4te.cache
 config.h
 config.log

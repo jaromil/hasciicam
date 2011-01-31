@@ -48,7 +48,8 @@ AC_C_CONST
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
-doc/Makefile	
+doc/Makefile
+share/Makefile
 ])
 AC_OUTPUT
 

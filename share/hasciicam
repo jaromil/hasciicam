@@ -1,0 +1,2 @@
+?package(hasciicam):command="hasciicam" icon="/usr/share/icons/hasciicam.xpm" needs="X11" \
+        section="Applications/Video" title="HasciiCam" hints="Live video in text"
