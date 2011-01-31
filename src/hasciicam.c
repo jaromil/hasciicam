@@ -1,6 +1,6 @@
-/*  HasciiCam 2.0
+/*  HasciiCam 1.1
  *
- *  (c) 2000-2010 Denis Roio <jaromil@dyne.org>
+ *  (c) 2000-2011 Denis Roio <jaromil@dyne.org>
  *
  * This source code is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Public License as published 
@@ -43,9 +43,7 @@
 #include <signal.h>
 
 #include <linux/types.h>
-#include <linux/videodev.h>
-
-#include <config.h>
+#include <linux/videodev2.h>
 
 #include <aalib.h>
 #include <ftplib.h>
