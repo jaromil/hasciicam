@@ -57,7 +57,7 @@
 
 char *version =
     "\n%s %s - (h)ascii 4 the masses! - http://ascii.dyne.org\n"
-    "(c)2000-2010 by Jaromil @ RASTASOFT\n\n";
+    "(c)2000-2011 by Jaromil @ RASTASOFT\n\n";
 
 char *help =
 /* "\x1B" "c" <--- SCREEN CLEANING ESCAPE CODE
@@ -111,9 +111,6 @@ const struct option long_options[] = {
   {"foreground", required_argument, NULL, 'F'},
   {"uid", required_argument, NULL, 'U'},
   {"gid", required_argument, NULL, 'G'},
-  //  { "bttvbright", required_argument, NULL, 'B' }, 
-  //  { "bttvcontrast", required_argument, NULL, 'C' },
-  //  { "bttvgamma", required_argument, NULL, 'G' },
   {0, 0, 0, 0}
 };
 
@@ -585,17 +582,6 @@ config_init (int argc, char *argv[]) {
     case 'G':
       gid = atoi (optarg);
       break;
-      /*
-	case 'B':
-	bttvbright = atoi(optarg);
-	break;
-	case 'C':
-	bttvcontrast = atoi(optarg);
-	break;
-	case 'G':
-	bttvgamma = atoi(optarg);
-	break;
-      */
     }
   } while (res > 0);
 
