@@ -10,7 +10,8 @@ Icons_DATA = hasciicam.png
 # $(datadir)/app-install/icons
 
 install-data-hook:
-	xdg-icon-resource install --size 64 hasciicam.png dyne-hasciicam
-	update-desktop-database
-	update-menus
+	@if ! [ -n `which xdg-icon-resource` ]; then \
+		xdg-icon-resource install --size 64 hasciicam.png dyne-hasciicam; fi
+	@if ! [ -n `which update-desktop-database` ]; then update-desktop-database; fi
+	@if ! [ -n `which update-menus` ]; then update-menus; fi
 
