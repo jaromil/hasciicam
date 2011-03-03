@@ -64,29 +64,29 @@ char *help =
    why here? just a reminder for a shamanic secret told by bernie@codewiz.org */
 "Usage: hasciicam [options] [rendering options] [aalib options]\n"
 "options:\n"
-"-h --help         this help\n"
-"-H --aahelp       aalib complete help\n"
-"-v --version      version information\n"
-"-q --quiet        be quiet\n"
-"-m --mode         mode: live|html|text      - default live\n"
-"-d --device       video grabbing device     - default /dev/video\n"
-"-i --input        input channel number      - default 1\n"
+" -h --help         this help\n"
+" -H --aahelp       aalib complete help\n"
+" -v --version      version information\n"
+" -q --quiet        be quiet\n"
+" -m --mode         mode: live|html|text      - default live\n"
+" -d --device       video grabbing device     - default /dev/video\n"
+" -i --input        input channel number      - default 1\n"
 //"-s --size         ascii image size WxH      - default 96x72\n"
-"-o --aafile       dumped file               - default hasciicam.[txt|html]\n"
-"-f --ftp          ie: :user%pass@host:dir   - default none\n"
-"-D --daemon       run in background         - default foregrond\n"
-"-U --uid          setuid (int)              - default current\n"
-"-G --gid          setgid (int)              - default current\n"
+" -o --aafile       dumped file               - default hasciicam.[txt|html]\n"
+" -f --ftp          ie: :user%pass@host:dir   - default none\n"
+" -D --daemon       run in background         - default foregrond\n"
+" -U --uid          setuid (int)              - default current\n"
+" -G --gid          setgid (int)              - default current\n"
 "rendering options:\n"
-"-S --font-size    html font size (1-4)      - default 1\n"
-"-a --font-face    html font to use          - default courier\n"
-"-r --refresh      refresh delay             - default 2\n"
-"-b --aabright     ascii brightness          - default 60\n"
-"-c --aacontrast   ascii contrast            - default 4\n"
-"-g --aagamma      ascii gamma               - default 3\n"
-"-I --invert       invert colors             - default off\n"
-"-B --background   background color (hex)    - default 000000\n"
-"-F --foreground   foreground color (hex)    - default 00FF00\n";
+" -S --font-size    html font size (1-4)      - default 1\n"
+" -a --font-face    html font to use          - default courier\n"
+" -r --refresh      refresh delay             - default 2\n"
+" -b --aabright     ascii brightness          - default 60\n"
+" -c --aacontrast   ascii contrast            - default 4\n"
+" -g --aagamma      ascii gamma               - default 3\n"
+" -I --invert       invert colors             - default off\n"
+" -B --background   background color (hex)    - default 000000\n"
+" -F --foreground   foreground color (hex)    - default 00FF00\n";
 
 const struct option long_options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -464,14 +464,14 @@ config_init (int argc, char *argv[]) {
     switch (res) {
     case 'h':
       fprintf (stderr, "%s", help);
-      exit (1);
+      exit (0);
       break;
     case 'H':
       fprintf (stderr, "%s", help);
       fprintf (stderr, "\naalib options:\n%s",aa_help);
-      exit(1);
+      exit(0);
     case 'v':
-      exit (1);
+      exit (0);
       break;
     case 'q':
       quiet = 1;

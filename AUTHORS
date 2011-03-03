@@ -1,5 +1,5 @@
  HasciiCam is being developed and mantained by:
-# denis rojo aka jaromil http://rastasoft.org
+# denis roio aka jaromil http://rastasoft.org
 
  people who contributed to the hasciicam project:
 # jan hubicka and the aalib crew - the asci rendering library
@@ -14,4 +14,5 @@
 # alessandro preite martinez - sgi irix support (0.9)
 # thomas pfau - ftp library
 # blended - wider webcam support
+# dan stowell - v4l2 api support
 
