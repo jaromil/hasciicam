@@ -653,11 +653,11 @@ main (int argc, char **argv) {
   memcpy (&ascii_hwparms, &aa_defparams, sizeof (struct aa_hardware_params));
   ascii_rndparms = aa_getrenderparams();
 
-  //  memcpy (&ascii_rndparms,&aa_defrenderparams,sizeof(struct aa_renderparams));
-  /* set hasciicam options */
-  config_init (argc, argv);
   /* gathering aalib commandline options */
   aa_parseoptions (&ascii_hwparms, ascii_rndparms, &argc, argv);
+
+  /* set hasciicam options */
+  config_init (argc, argv);
   /* detect and init video device */
   if( vid_detect(device) > 0 ) {
     vid_init();
