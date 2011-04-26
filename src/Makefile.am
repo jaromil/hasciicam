@@ -1,8 +1,7 @@
 bin_PROGRAMS = hasciicam
 
 hasciicam_SOURCES = 	\
-	hasciicam.c	\
-	ftplib.c
+	hasciicam.c
 
-hasciicam_LDADD = -laa
+hasciicam_LDADD = -laa -lftp
 
