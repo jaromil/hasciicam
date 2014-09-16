@@ -1,6 +1,6 @@
-/*  HasciiCam 1.1
+/*  HasciiCam 1.3
  *
- *  (c) 2000-2011 Denis Roio <jaromil@dyne.org>
+ *  (c) 2000-2014 Denis Roio <jaromil@dyne.org>
  *
  * This source code is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Public License as published 
@@ -46,7 +46,6 @@
 #include <linux/videodev2.h>
 
 #include <aalib.h>
-#include <ftplib.h>
 
 /* hasciicam modes */
 #define LIVE 0
@@ -57,7 +56,7 @@
 
 char *version =
     "\n%s %s - (h)ascii 4 the masses! - http://ascii.dyne.org\n"
-    "(c)2000-2011 by Jaromil @ RASTASOFT\n\n";
+    "(c)2000-2014 by Jaromil @ RASTASOFT\n\n";
 
 char *help =
 /* "\x1B" "c" <--- SCREEN CLEANING ESCAPE CODE
@@ -71,9 +70,8 @@ char *help =
 " -m --mode         mode: live|html|text      - default live\n"
 " -d --device       video grabbing device     - default /dev/video\n"
 " -i --input        input channel number      - default 1\n"
-//"-s --size         ascii image size WxH      - default 96x72\n"
+" -s --size         ascii image size WxH      - webcam's smallest default\n"
 " -o --aafile       dumped file               - default hasciicam.[txt|html]\n"
-" -f --ftp          ie: :user%pass@host:dir   - default none\n"
 " -D --daemon       run in background         - default foregrond\n"
 " -U --uid          setuid (int)              - default current\n"
 " -G --gid          setgid (int)              - default current\n"
@@ -96,9 +94,8 @@ const struct option long_options[] = {
   {"mode", required_argument, NULL, 'm'},
   {"device", required_argument, NULL, 'd'},
   {"input", required_argument, NULL, 'i'},
-//  {"size", required_argument, NULL, 's'},
+  {"size", required_argument, NULL, 's'},
   {"aafile", required_argument, NULL, 'o'},
-  {"ftp", required_argument, NULL, 'f'},
   {"daemon", no_argument, NULL, 'D'},
   {"font-size", required_argument, NULL, 'S'},
   {"font-face", required_argument, NULL, 'a'},
@@ -114,12 +111,11 @@ const struct option long_options[] = {
   {0, 0, 0, 0}
 };
 
-char *short_options = "hHvqm:d:i:f:DS:a:r:o:b:c:g:IB:F:O:Q:U:G:";
+char *short_options = "hHvqm:d:i:s:f:DS:a:r:o:b:c:g:IB:F:O:Q:U:G:";
 
 /* default configuration */
 int quiet = 0;
 int mode = 0;
-int useftp = 0;
 int inputch = 0;
 int daemon_mode = 0;
 int invert = 0;
@@ -142,14 +138,8 @@ char background[64];
 char foreground[64];
 char fontface[256];
 
-/* ftp stuff */
-char ftp[512];
-char ftp_user[256];
-char ftp_host[256];
-char ftp_dir[256];
-char ftp_pass[256];
-int ftp_passive;
-netbuf *ftpconn = NULL;
+int user_w = 0;
+int user_h = 0;
 
 int uid = -1;
 int gid = -1;
@@ -292,13 +282,27 @@ int vid_detect(char *devfile) {
 // Need to find out (request?) specific data format (sec 1.10.1)
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-//noeffect   format.fmt.pix.width  = 320;
-//noeffect   format.fmt.pix.height = 240;
+    /* the format.fmt.pix member, a v4l2_pix_format, is now filled in
+       with default falues */
     if(-1 == ioctl(fd, VIDIOC_G_FMT, &format)) {
-	perror("VIDIOC_G_FMT");
-	exit(EXIT_FAILURE);
+      perror("VIDIOC_G_FMT");
+      exit(EXIT_FAILURE);
     }
-// the format.fmt.pix member, a v4l2_pix_format, is now filled in
+
+    format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+
+    if(whchanged==1) {
+    // fill in user defined values
+     fprintf(stderr,"user defined size: %u x %u\n", user_w, user_h);
+     format.fmt.pix.width  = user_w;
+     format.fmt.pix.height = user_h;
+    }
+
+    if(-1 == ioctl(fd, VIDIOC_S_FMT, &format)) {
+      perror("VIDIOC_S_FMT");
+      exit(EXIT_FAILURE);
+    }
+
     printf("Current capture is %u x %u\n",
            format.fmt.pix.width, format.fmt.pix.height);
     printf("format %4.4s, %u bytes-per-line\n", 
@@ -312,15 +316,16 @@ int vid_detect(char *devfile) {
 int vid_init() {
     int i, j;
 
+    // TODO QUAA
     vw = format.fmt.pix.width;
     vh = format.fmt.pix.height;
     vbytesperline = format.fmt.pix.bytesperline;
     xbytestep = xstep + xstep; // for YUV422. for other formats may differ
     ybytestep = vbytesperline * (ystep-1);
-// we shrink our pixels crudely, by hopping over them:
+    // we shrink our pixels crudely, by hopping over them:
     gw = vw / xstep;
     gh = vh / ystep;
-// aalib converts every block of 4 pixels to one character, so our sizes shrink by 2:
+    // aalib converts every block of 4 pixels to one character, so our sizes shrink by 2:
     aw = gw / 2;
     ah = gh / 2;
     
@@ -456,8 +461,6 @@ config_init (int argc, char *argv[]) {
   aa_geo.contrast = 4;
   aa_geo.gamma = 3;
   
-  ftp_passive = 0;
-
   do {
     res = getopt_long (argc, argv, short_options, long_options, NULL);
     
@@ -478,20 +481,16 @@ config_init (int argc, char *argv[]) {
       break;
     case 'm':
       if (strcasecmp (optarg, "live") == 0) {
-	if (useftp) {
-	  fprintf (stderr,"heek, ftp option makes no sense with live mode!\n");
-	  useftp = 0;
-	}
-	mode = LIVE;
+        mode = LIVE;
       } else if (strcasecmp (optarg, "html") == 0) {
-	mode = HTML;
-	strcpy(aafile,"hasciicam.html");
+        mode = HTML;
+        strcpy(aafile,"hasciicam.html");
       } else if (strcasecmp (optarg, "text") == 0) {
-	mode = TEXT;
-	strcpy(aafile,"hasciicam.asc");
+        mode = TEXT;
+        strcpy(aafile,"hasciicam.asc");
       } else {
-	fprintf (stderr, "!! invalid mode selected, using live\n");
-	mode = LIVE;
+        fprintf (stderr, "!! invalid mode selected, using live\n");
+        mode = LIVE;
       }
       break;
     case 'd':
@@ -517,12 +516,12 @@ config_init (int argc, char *argv[]) {
 	while (isdigit (*t))
 	  t++;
 	*t = 0;
-	aa_geo.w = atoi (optarg);
+	user_w = atoi (optarg);
 	tt = ++t;
 	while (isdigit (*tt))
 	  tt++;
 	*tt = 0;
-	aa_geo.h = atoi (t);
+	user_h = atoi (t);
 	whchanged = 1;
       }
       break;
@@ -545,15 +544,6 @@ config_init (int argc, char *argv[]) {
     case 'o':
       if(mode>0)
 	strncpy(aafile,optarg,256);
-      break;
-    case 'f':
-      if (mode>0) {
-	strncpy(ftp,optarg,512);
-	useftp = 1;
-      }
-      else
-	fprintf (stderr,
-		 "heek, ftp option makes no sense with live mode!\n");
       break;
     case 'D':
       daemon_mode = 1;
@@ -584,47 +574,6 @@ config_init (int argc, char *argv[]) {
       break;
     }
   } while (res > 0);
-
-  if (useftp) {
-    /* i have to say i'm quite proud of the parsers i write :) */
-    char *p, *pp;
-    p = pp = ftp;
-
-    /* duepunti at the beginning for passive mode */
-    if(*p == ':') { ftp_passive = 1; p++; pp++; }
-
-    /* get the user and check if a password has been specified */
-    while (*p != '@') {
-      if(*p == '%') { /* pass found, get it */
-	*p = '\0'; strncpy(ftp_pass,pp,256);
-	pp = p+1;
-      }
-      if ((p - pp) < 256) p++;
-      else {
-	fprintf (stderr,"Error: malformed ftp command: %s\n", ftp);
-	exit (0); }
-    } /* here we have the username */
-     *p = '\0'; strncpy(ftp_user,pp,256);
-    p++; pp = p;
-    
-    while (*p != ':') {
-      if ((pp - p) < 256) p++;
-      else {
-	fprintf (stderr,"Error: malformed ftp command: %s\n", ftp);
-	exit (0); }
-    } /* here the host */
-    *p = '\0'; strncpy(ftp_host,pp,256);
-    p++; pp = p;
-
-    while (*p != '\0' && *p != '\n') {
-      if ((pp - p) < 256) p++;
-      else {
-	fprintf (stderr,"Error: malformed ftp command: %s\n", ftp);
-	exit (0); }
-    }
-    if((pp-p)==0) strcpy(ftp_dir,".");
-    else strncpy(ftp_dir,pp,256);
-  }
 
 }
 
@@ -730,35 +679,6 @@ main (int argc, char **argv) {
     fprintf(stderr,"!! cannot initialize aalib\n");
     exit(-1);
   }
-    
-  while (useftp)
-    {
-      fprintf (stderr, "ftp push on ftp://%s@%s:%s\n", ftp_user, ftp_host, ftp_dir);
-
-      FtpInit();
-      if(!FtpConnect(ftp_host,&ftpconn)) {
-	fprintf(stderr,"Unable to connect to host %s\n", ftp_host);
-	useftp = 0; break;
-      }
-      if(ftp_passive)
-	if(!FtpOptions(FTPLIB_CONNMODE,FTPLIB_PASSIVE,ftpconn)) {
-	  fprintf(stderr,"Unable to activate passive mode: %s\n",FtpLastResponse(ftpconn));
-	  useftp = 0; break;
-	}
-      if(!strchr(ftp,'%')) {
-	sprintf (temp, "password for %s@%s : ", ftp_user, ftp_host);
-	strncpy(ftp_pass, getpass(temp), 256);
-      }
-      if(!FtpLogin(ftp_user, ftp_pass, ftpconn)) {
-	fprintf(stderr,"Login Failure: %s\n",FtpLastResponse(ftpconn));
-	useftp = 0; break;
-      }
-      if(!FtpChdir(ftp_dir,ftpconn)) {
-	fprintf(stderr,"Change directory failed: %s\n",FtpLastResponse(ftpconn));
-	useftp = 0; break;
-      }
-      break;
-    }
 
 
   ascii_rndparms->bright = aa_geo.bright;
@@ -793,25 +713,10 @@ main (int argc, char **argv) {
     aa_flush (ascii_context);
   //  unlink(aafile);
     rename(aatmpfile,aafile);
-	
-    if (useftp) {
-      //      if (!ftp_connected)
-      //	ftp_connect (ftp_host, ftp_user, ftp_pass, ftp_dir);
-      /* scolopendro is the tmp file being renamed
-	 it is called so for hystorical reasons */
-      //      ftp_upload (aafile, aafile, "scolopendro");
-      if(!FtpPut(aafile,"scolopendro",FTPLIB_ASCII,ftpconn))
-	fprintf(stderr,"Error in ftp put: %s\n",FtpLastResponse(ftpconn));
-      if(!FtpRename("scolopendro",aafile,ftpconn))
-	fprintf(stderr,"Error in ftp rename %s\n",FtpLastResponse(ftpconn));
-    }
-  
+
   }
 
   /* CLEAN EXIT */
-  
-  if(useftp)
-      FtpClose(ftpconn);
   
   // turn off streaming
   if(-1 == ioctl(fd, VIDIOC_STREAMOFF, &buftype)) {

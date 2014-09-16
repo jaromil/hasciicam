@@ -4,7 +4,7 @@ dnl ==============================================================
 
 AC_PREREQ([2.60])
 
-AC_INIT([hasciicam],[1.1.2],[jaromil@dyne.org],[hasciicam])
+AC_INIT([hasciicam],[1.3],[jaromil@dyne.org],[hasciicam])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CANONICAL_HOST
@@ -40,7 +40,6 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(linux/videodev2.h)
 AC_CHECK_HEADERS(aalib.h)
-AC_CHECK_HEADERS(ftplib.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
