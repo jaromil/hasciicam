@@ -4,7 +4,7 @@ dnl ==============================================================
 
 AC_PREREQ([2.60])
 
-AC_INIT([hasciicam],[1.3],[jaromil@dyne.org],[hasciicam])
+AC_INIT([hasciicam],[1.3],[jaromil@dyne.org],[hasciicam],[http://ascii.dyne.org])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_CANONICAL_HOST

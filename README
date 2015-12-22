@@ -10,6 +10,8 @@
 
                                                  version 1.1.1
 
+[![software by Dyne.org](https://www.dyne.org/wp-content/uploads/2015/12/software_by_dyne.png)](http://www.dyne.org)
+
 Hasciicam makes it possible to have live ascii video on the web. It
 captures video from a tv card and renders it into ascii, formatting
 the output into an html page with a refresh tag or in a live ascii
