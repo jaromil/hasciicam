@@ -75,6 +75,17 @@ INSTALLATION
 To compile the sourcecode it works as usual:
 
  ./configure; make; make install
+ 
+COMPILING ON DEBIAN
+ 
+To compile on Debian you will need libaa1-dev.
+To compile and install:
+
+ apt install libaa1-dev
+ autoreconf --install
+ ./configure
+ make
+ make install
 
 on Debian and Ubuntu you have hasciicam packages ready to install
 for the very latest version add the dyne.org apt repository:
