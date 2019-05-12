@@ -72,24 +72,28 @@ nnnvvvli||||||||||+iaaawwwwygwwwwwwwwwwwymmmWWQQQQQQQQQQQQQQQQQQQQQmuymQQQQQQQQQ
 
 INSTALLATION
 
-To compile the sourcecode it works as usual:
-
- ./configure; make; make install
-
-on Debian and Ubuntu you have hasciicam packages ready to install
+On Debian and Ubuntu you have hasciicam packages ready to install
 for the very latest version add the dyne.org apt repository:
 
  Debian:      deb http://apt.dyne.org/debian stable main
 
  Ubuntu:      deb http://apt.dyne.org/ubuntu stable main
 
-what's needed to compile:
+If you need to compile hasciicam, you will need:
 
 aalib - that's the great lib that makes possible ascii rendering
 	if your distribution does'nt includes it, you can fetch it
 	from the hasciicam webpage.
 
-running it:
+To compile the sourcecode it works as usual:
+
+ autoreconf -i && ./configure && make
+
+and to install it, you can use 
+
+ make install
+
+Running it:
 
 people reported success with several pci and usb devices, refer to
 video4linux documentation for further informations
@@ -105,9 +109,9 @@ man hasciicam
 
 ---
 
- CREDITS
+CREDITS
 
- Hasciicam is written by Jaromil - http://rastasoft.org
+Hasciicam is written by Jaromil - http://rastasoft.org
 
 code, hacks and ideas have been contributed by:
  jan hubicka and the aalibcrew, gerdknorr, mathop, augustonero, boffh,
