@@ -1,6 +1,7 @@
 
 .... The Dyne.org Foundation presents RASTASOFT's
 
+```
 88  88    db    .dP"Y8  dP""b8 88 88  dP""b8    db    8b    d8 
 88  88   dPYb   `Ybo." dP   `" 88 88 dP   `"   dPYb   88b  d88 
 888888  dP__Yb  o.`Y8b Yb      88 88 Yb       dP__Yb  88YbdP88 
@@ -9,6 +10,7 @@
                 [ (h)ascii for the masses! ]
 
                                                  version 1.1.1
+```
 
 [![software by Dyne.org](https://www.dyne.org/wp-content/uploads/2015/12/software_by_dyne.png)](http://www.dyne.org)
 
@@ -20,7 +22,7 @@ anybody that has a bttv card. a linux box and a cheap modem line to
 show a live asciivideo feed that can be browsable without any need for
 plugin, java etc.
 
-
+```
 ||==================================||==|===|=================================================|===========
 ==========================================================================================================
 ||===================================<|awww%==============================================================
@@ -66,74 +68,92 @@ sd#ZXXXXXXXXXXXXXXXXXXXXX#####XXX###############m#mWWWWWm#WQQQQQQQQQQQQQmmmmmmmm
 ZXSXXonnvnv1vvvvlliilivvvnooXXXXXXXXXXXXXXXXXooXXXXXXZ###X#####mWWWWWW##QQQQQQQQQQQQP:::::.-............--
 nnonnvvvIllliiliiiiiilvvnnnnnn1nn11I11v1n111II1nqmmmmmmmmQQQQQmQmmZXXXXqQQQQQQQQQQQC:::::-.......:........
 nnnvvvli||||||||||+iaaawwwwygwwwwwwwwwwwymmmWWQQQQQQQQQQQQQQQQQQQQQmuymQQQQQQQQQQQt=:::-.........-........
+```
 
-
----
-
-INSTALLATION
+# INSTALLATION
 
 On Debian and Ubuntu you have hasciicam packages ready to install
-for the very latest version add the dyne.org apt repository:
 
- Debian:      deb http://apt.dyne.org/debian stable main
+```
+sudo apt-get install hasciicam
+```
 
- Ubuntu:      deb http://apt.dyne.org/ubuntu stable main
+On RedHat and derivatives a package may be available too.
 
-If you need to compile hasciicam, you will need:
+# USAGE
 
-aalib - that's the great lib that makes possible ascii rendering
-	if your distribution does'nt includes it, you can fetch it
-	from the hasciicam webpage.
+This software is operated from a terminal... and invites you to enjoy
+the aesthetics of it `:^)`
 
-To compile the sourcecode it works as usual:
+To have a brief list of command line options, use:
+```
+hasciicam -h
+```
+To see the manual:
+```
+man hasciicam
+```
 
+# BUILD FROM SOURCE
+
+If you want to compile hasciicam from its source code, you will need
+`aalib`: that's the great lib that makes possible ascii rendering if
+your distribution does'nt includes it, you can fetch it from the
+hasciicam webpage.
+
+To compile the sourcecode:
+```sh
  autoreconf -i && ./configure && make
-
+```
 and to install it, you can use 
-
+```
  make install
-
+```
 Running it:
 
 people reported success with several pci and usb devices, refer to
 video4linux documentation for further informations
 
----
+# CREDITS
 
-DOCUMENTATION
+Hasciicam is designed, written and maintained by jaromil - http://rastasoft.org
 
-to have a list of command line options:
-./hasciicam -h
-or once installed try:
-man hasciicam
+People who contributed to the hasciicam project:
+- jan hubicka and the aalib crew - the asci rendering library
+- gerd knorr - grab was inspired by his webcam sourcecode
+- mathop aka josto - help on css with style
+- august black - hacks for iomegabuz
+- boffh - hacks for usb cams
+- martin guy - karma to avoid buffer overflows
+- rat - text dump
+- pbm & megabug - watching ascii horizons
+- rapid - security and bugfixes
+- alessandro preite martinez - sgi irix support (0.9)
+- thomas pfau - ftp library
+- blended - wider webcam support
+- dan stowell - v4l2 api support
 
----
+Special thanks to:
 
-CREDITS
-
-Hasciicam is written by Jaromil - http://rastasoft.org
-
-code, hacks and ideas have been contributed by:
- jan hubicka and the aalibcrew, gerdknorr, mathop, augustonero, boffh,
- martin guy, pbm, megabug, rat, rapid, alessandro preite martinez, hks1,
- thomas pfau, knorke, blended, dan stowell
-
-special thanks to:
-
-# LOA hacklab milano :: http://loa.hacklab.it
-	for donating a pentium100mhz development box
-
-# hell voyager 
-	for donating an hauppage bttv brooktree card
-	(wich makes it possible to have releases :) )
-
-# alex + rasty + martinez
-	very good vibez!
-
-# servus.at, maddler.net, flyinglinux.net, autistici.org
-	high quality bandwidth lets people get slashdotted!
-
-# FREAKNET medialab catania :: http://freaknet.org
-	for knowledge, place, sun and connectivity under the vulcano!
+- LOA hacklab milano for donating a pentium100mhz development box
+- hell voyager for donating an hauppage bttv brooktree card which made it possible to have releases :) )
+- acme + rasty + martinez for very good vibez!
+- servus.at, maddler.net, flyinglinux.net, autistici.org high quality bandwidth lets people get slashdotted!
+- FREAKNET medialab catania :: http://freaknet.org for knowledge, place, sun and connectivity under the vulcano!
 	
+# LICENSE
 
+
+This source code is free software; you can redistribute it and/or
+modify it under the terms of the GNU Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This source code is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  Please refer to
+the GNU Public License for more details.
+
+You should have received a copy of the GNU Public License along with
+this source code; if not, write to: Free Software Foundation, Inc.,
+675 Mass Ave, Cambridge, MA 02139, USA.
