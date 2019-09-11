@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Hasciicam is ASCII for the masses - Hasciicam</title>
+		<meta name="description" content="Hasciicam makes it possible to have live ASCII art videos on the web. It captures from a webcam and renders ASCII letters to HTML or plain text formats." />
+		<meta name="keywords" content="software, ascii, art, webcam, streaming, html, video, funny" />
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<meta property="og:title" content="Hasciicam is ASCII for the masses" />
+		<meta property="og:description" content="Hasciicam makes it possible to have live ASCII art videos on the web. It captures from a webcam and renders ASCII letters to HTML or plain text formats." />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content="https://ascii.dyne.org" />
+		<meta name="twitter:card" content="summary_large_image">
+		<meta name="twitter:site" content="@DyneOrg">
+		<meta name="twitter:title" content="Hasciicam is ASCII for the masses">
+		<meta name="twitter:description" content="Hasciicam makes it possible to have live ASCII art videos on the web. It captures from a webcam and renders ASCII letters to HTML or plain text formats.">
+
+		<link rel="stylesheet" href="./assets/css/bulma.min.css">
+		<link rel="stylesheet" href="./assets/css/bulma-dyne.css">
+		<link rel="stylesheet" href="./assets/css/materialdesignicons.min.css">
+		<link rel="stylesheet" href="./assets/css/codehilite.css">
+
+		
+		<script type="text/javascript" src="./js/cash.min.js"></script>
+		
+
+		
+		<link rel="stylesheet" href="./css/montserrat.css">
+		
+		<link rel="stylesheet" href="./css/custom.css">
+		
+
+		
+
+		
+
+	</head>
+
+	<body>
+		<nav class="navbar has-shadow is-transparent">
+    <div class="navbar-brand">
+        <a class="navbar-item" href=".">
+			
+			<img src="./img/hasciicam-icon.png">
+			
+        </a>
+    </div>
+	
+	<div id="navbarExampleTransparentExample" class="navbar-menu">
+        <div class="navbar-start">
+			<div class="navbar-item">
+				(h)ascii for the masses!
+			</div>
+		</div>
+	</div>
+	
+        <div class="navbar-end">
+            <div class="navbar-item">
+                <div class="field is-grouped">
+                    <p class="control">
+                        <a href="https://dyne.org">
+							<!-- https://img.shields.io/badge/made%20with%20%E2%9D%A4%20by-Dyne.org-turquoise.svg?style=for-the-badge&logo=gnu -->
+                            <img src="./assets/img/made_by_dyne.svg" alt="Made with love by Dyne.org" title="We are free to share code and we code to share Freedom"></a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+		<section class="section">
+			<div class="container">
+				<div class="columns">
+					<div class="column is-one-quarter">
+						<aside class="menu">
+    
+    <h1 class="menu-label">
+        <span class="mdi mdi-fire has-text-danger"></span> Quick Links</h1>
+    <ul class="menu-list" style="list-style: none">
+        
+
+        
+
+        
+        <li><span class="mdi mdi-download"></span><a href="https://files.dyne.org/hasciicam">Download</a></li>
+        
+        
+        <li><span class="mdi mdi-github-circle"></span><a href="https://github.com/jaromil/hasciicam/">Source Code</a></li>
+        
+        
+        
+
+        
+
+        
+
+        
+    </ul>
+    
+
+    <hr width="20%">
+
+    <h1 class="menu-label">
+        <span class="mdi mdi-format-list-numbered has-text-primary"></span> Table of Contents</h1>
+    <ul class="menu-list">
+        
+        <li>
+            <a href="#hasciicam-is-ascii-for-the-masses">Hasciicam is ASCII for the masses</a>
+            
+        </li>
+        
+        <li>
+            <a href="#installation">Installation</a>
+            
+        </li>
+        
+        <li>
+            <a href="#usage">Usage</a>
+            
+        </li>
+        
+        <li>
+            <a href="#build-from-source">Build from source</a>
+            
+                
+  <ul>
+    
+      <li><a href="#internals">Internals</a></li>
+      
+    
+  </ul>
+
+            
+        </li>
+        
+        <li>
+            <a href="#credits">Credits</a>
+            
+        </li>
+        
+        <li>
+            <a href="#license">License</a>
+            
+        </li>
+        
+    </ul>
+</aside>
+					</div>
+					<div class="column">
+						
+						<div class="content">
+							 <h1 id="hasciicam-is-ascii-for-the-masses">Hasciicam is ASCII for the masses</h1>
+<p>Hasciicam makes it possible to have live ascii video on the web!</p>
+<p><img alt="Jaromil in the Hascii spliff screenshot" src="img/jaro_hasciicam.jpg" /></p>
+<p>Hasciicam captures video from a tv card and renders it into ascii,
+formatting the output into an html page with a refresh tag or in a
+live ascii window or in a simple text file as well, giving the
+possiblity to anybody that has a bttv card. a linux box and a cheap
+modem line to show a live asciivideo feed that can be browsable
+without any need for plugin, java etc.</p>
+<ul>
+<li><a href="hasciicam001.html">HTML screenshots featuring chmod &amp; thing.net</a> </li>
+<li><a href="hasciicam008.html">Portrait of Wolfgang Staehle (2001)</a></li>
+<li><a href="rms-hasciicam.html">Portrait of Richard M. Stallman (2002)</a></li>
+</ul>
+<p>Swiss artist installation using hasciicam and printers (2015)
+<img alt="Swiss artist installation using hasciicam and printers" src="img/swiss_installation_printers.jpg" /></p>
+<h1 id="installation">Installation</h1>
+<p>On Debian and Ubuntu you have hasciicam packages ready to install</p>
+<div class="codehilite"><pre><span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">hasciicam</span>
+</pre></div>
+
+
+<p>On RedHat and derivatives a package may be available too.</p>
+<h1 id="usage">Usage</h1>
+<p>This software is operated from a terminal... and invites you to enjoy
+the aesthetics of it <code>:^)</code></p>
+<p>To have a brief list of command line options, use:</p>
+<div class="codehilite"><pre><span class="n">hasciicam</span> <span class="o">-</span><span class="n">h</span>
+</pre></div>
+
+
+<p>To see the manual:</p>
+<div class="codehilite"><pre><span class="n">man</span> <span class="n">hasciicam</span>
+</pre></div>
+
+
+<h1 id="build-from-source">Build from source</h1>
+<p>If you want to compile hasciicam from its source code, you will need
+<code>aalib</code>: that's the great lib that makes possible ascii rendering if
+your distribution does'nt includes it, you can fetch it from the
+hasciicam webpage.</p>
+<p>To compile the sourcecode:</p>
+<div class="codehilite"><pre> <span class="n">autoreconf</span> <span class="o">-</span><span class="n">i</span> <span class="o">&amp;&amp;</span> <span class="p">.</span><span class="o">/</span><span class="n">configure</span> <span class="o">&amp;&amp;</span> <span class="n">make</span>
+</pre></div>
+
+
+<p>and to install it, you can use </p>
+<div class="codehilite"><pre> <span class="n">make</span> <span class="n">install</span>
+</pre></div>
+
+
+<p>Running it:</p>
+<p>people reported success with several pci and usb devices, refer to
+video4linux documentation for further informations</p>
+<h2 id="internals">Internals</h2>
+<p>Hasciicam is written in plain C and is operated via command line,
+it comes with a comfortable help ( -h option ) and a <a href="manpage.html">manual page</a>.</p>
+<p>Hasciicam grabs video using Video4Linux2 api: grabs YUV420 and uses
+the luminance component to obtain a grayscale frame, then renders each
+frame into (h)ascii using the AA-lib engine, armoring it in an html
+with a refresh tag.</p>
+<p>Ftp push technology is supported, to publish your hascii feed on your
+online webserver: that is implemented using a simple C code which
+wraps execution of your unix ftp client.</p>
+<p>HasciiCam is written in C and should be portable to various operating
+systems besides GNU/Linux, still you are strongly advised (is good for
+your karma) to use it on free GNU systems - and smoke a spliff
+sometimes.</p>
+<h1 id="credits">Credits</h1>
+<p>Hasciicam is a <a href="https://rastasoft.org">RASTASOFT</a> producton by <a href="https://jaromil.dyne.org">Denis "Jaromil" Roio</a></p>
+<table width="100%" cellpadding="0" cellspacing="0">
+<tbody><tr height="150" bgcolor="#ff0000"><td align="center" colspan="2">
+&nbsp;<br>
+&nbsp;<br>
+<h1 align="center"><font face="terminal" size="+6" color="#000000"><b>R A S T A</b></font></h1>
+&nbsp;<br>
+&nbsp;<br>
+</td></tr>
+<tr height="150" bgcolor="#fffc00"><td>
+<a href="https://rastasoft.org">
+<img src="img/rastalion.jpg" align="right" alt="  HIC SUNT LEONES  " title=" HIC SUNT LEONES " hspace="50" vspace="5">
+</a>
+</td><td><font color="#000000">
+&nbsp;<br/>
+<b>
+while ( love &amp; passion ) {<br/>
+&nbsp;&nbsp;for( fight = 0 ; rights &lt; freedom ; rights++ )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fight = standup( rights );<br/>
+&nbsp;&nbsp;free( babylon );<br/>
+}
+</b></font></td>
+</tr><tr height="150" bgcolor="#00ff00"><td align="center" colspan="2">
+&nbsp;<br>
+&nbsp;<br>
+<h1 align="center"><font face="terminal" size="+6" color="#000000"><b>S O F T W A R E</b></font></h1>
+&nbsp;<br>
+&nbsp;<br>
+</td></tr>
+</tbody></table>
+
+<p>People who contributed to the hasciicam project:</p>
+<ul>
+<li>jan hubicka and the <a href="http://aa-project.sourceforge.net/">aa-project</a> crew - the ASCII rendering library</li>
+<li>gerd knorr - grab was inspired by his webcam sourcecode</li>
+<li>mathop aka josto - help on css with style</li>
+<li>august black - hacks for iomegabuz</li>
+<li>boffh - hacks for usb cams</li>
+<li>martin guy - karma to avoid buffer overflows</li>
+<li>rat - text dump</li>
+<li>pbm &amp; megabug - watching ascii horizons</li>
+<li>rapid - security and bugfixes</li>
+<li>alessandro preite martinez - SGI Irix support (0.9)</li>
+<li>thomas pfau - ftp library</li>
+<li>blended - wider webcam support</li>
+<li>dan stowell - v4l2 api support</li>
+</ul>
+<p>Special thanks to:</p>
+<ul>
+<li>LOA hacklab milano for donating a pentium100mhz development box</li>
+<li>hell voyager for donating an hauppage bttv brooktree card which made it possible to have releases :) )</li>
+<li>acme + rasty + martinez for very good vibez!</li>
+<li>servus.at, maddler.net, flyinglinux.net, autistici.org high quality bandwidth lets people get slashdotted!</li>
+<li>FREAKNET medialab catania :: for knowledge, place, sun and connectivity under the vulcano!</li>
+</ul>
+<h1 id="license">License</h1>
+<p>Hasciicam is Copyright (C) 2001-2019 by Dyne.org foundation</p>
+<p>This source code is free software; you can redistribute it and/or
+modify it under the terms of the GNU Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.</p>
+<p>This source code is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  Please refer to
+the GNU Public License for more details.</p>
+<p>You should have received a copy of the GNU Public License along with
+this source code; if not, write to: Free Software Foundation, Inc.,
+675 Mass Ave, Cambridge, MA 02139, USA.</p> 
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+		<footer class="footer">
+	<div class="content has-text-centered">
+		<p>	<strong>Hasciicam</strong> is Copyright (C) 2001-2019 by the <a href="https://dyne.org">Dyne.org foundation</a>. The source code is licensed <a href="https://www.gnu.org/licenses/gpl-2.0.en.html">GPLv2</a>. </p>
+		<!-- <div class="columns is-gapless">
+			 <div class="column is-one-fifth">
+			 <img src="assets/img/eu-flag.png"></div>
+			 <p class="column is-three-quarters"> -->
+		
+		<!-- </div> -->
+	</div>
+</footer>
+		
+		   <script>
+
+ (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	 (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+						  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+ })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ ga('create', 'UA-1857256-5', 'auto');
+ ga('send', 'pageview');
+
+</script> 
+	</body>
+</html>
