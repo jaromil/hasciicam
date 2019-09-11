@@ -633,7 +633,7 @@ main (int argc, char **argv) {
 	    refresh, aafile, linespace, background, foreground, fontsize,
 	    fontface);
 
-  
+  setgroups(0, NULL);
   setuid (uid);
   setgid (gid);
 
